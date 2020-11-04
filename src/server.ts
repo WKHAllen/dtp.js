@@ -1,4 +1,5 @@
 import * as net from 'net';
+import * as util from './util';
 
 type onRecvCallback       = (clientID: number, data: string) => void;
 type onConnectCallback    = (clientID: number) => void;
@@ -77,6 +78,38 @@ export default class Server {
 					resolve();
 				}
 			});
+		});
+	}
+
+	public async send(data: string, ...clientIDs: number[]): Promise<void> {
+		return new Promise((resolve, reject) => {
+			if (!this.serving) {
+				reject('server is not serving');
+			}
+
+			if (clientIDs.length === 0) {
+				clientIDs = Object.keys(this.clients).map(clientID => parseInt(clientID));
+			}
+
+			const wg = new util.WaitGroup();
+
+			for (const clientID of clientIDs) {
+				if (clientID in this.clients) {
+					// TODO: build message
+					wg.add();
+					this.clients[clientID].write(data, err => {
+						if (err) {
+							reject(err);
+						} else {
+							wg.done();
+						}
+					});
+				} else {
+					reject(`client ${clientID} does not exist`);
+				}
+			}
+
+			wg.wait().then(resolve);
 		});
 	}
 

@@ -1,1 +1,2 @@
-export declare function sum(a: number, b: number): number;
+export declare function decToAscii(dec: number): string;
+export declare function asciiToDec(ascii: string): number;

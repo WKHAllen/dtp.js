@@ -164,6 +164,21 @@ export default class Server {
 		}
 	}
 
+	public removeClient(clientID: number): void {
+		if (!this.serving) {
+			throw new Error('server is not serving');
+		}
+
+		if (clientID in this.clients) {
+			this.clients[clientID].destroy();
+			delete this.clients[clientID];
+			// TODO: uncomment this when key exchange has been implemented
+			// delete this.keys[clientID];
+		} else {
+			throw new Error(`client ${clientID} does not exist`);
+		}
+	}
+
 	private onData(clientID: number, data: Buffer): void {
 		// TODO: parse data received
 		this.onRecv(clientID, data.toString());

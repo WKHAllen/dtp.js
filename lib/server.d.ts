@@ -1,6 +1,10 @@
 declare type onRecvCallback = (clientID: number, data: string) => void;
 declare type onConnectCallback = (clientID: number) => void;
 declare type onDisconnectCallback = (clientID: number) => void;
+interface Address {
+    host: string;
+    port: number;
+}
 export default class Server {
     private onRecv;
     private onConnect;
@@ -17,6 +21,10 @@ export default class Server {
     start(host: string, port: number): Promise<void>;
     stop(): Promise<void>;
     send(data: string, ...clientIDs: number[]): Promise<void>;
+    isServing(): boolean;
+    getAddr(): Address;
+    getClientAddr(clientID: number): Address | string;
+    removeClient(clientID: number): void;
     private onData;
 }
 export {};

@@ -59,8 +59,30 @@ export default class Server {
 				conn.pipe(conn);
 			});
 
-			this.server.listen(port, host, BACKLOG, resolve);
 			this.serving = true;
+			this.server.listen(port, host, BACKLOG, resolve);
+		});
+	}
+
+	public async stop(): Promise<void> {
+		return new Promise((resolve, reject) => {
+			if (!this.serving) {
+				reject('server is not serving');
+			}
+
+			this.serving = false;
+
+			for (const clientID in this.clients) {
+				this.clients[clientID].destroy();
+			}
+
+			this.server.close(err => {
+				if (err) {
+					reject(err);
+				} else {
+					resolve();
+				}
+			});
 		});
 	}
 }

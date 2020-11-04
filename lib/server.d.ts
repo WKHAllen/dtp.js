@@ -15,5 +15,6 @@ export default class Server {
     start(host: string): Promise<void>;
     start(port: number): Promise<void>;
     start(host: string, port: number): Promise<void>;
+    stop(): Promise<void>;
 }
 export {};

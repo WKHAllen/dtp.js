@@ -5,12 +5,17 @@ type onRecvCallback       = (clientID: number, data: string) => void;
 type onConnectCallback    = (clientID: number) => void;
 type onDisconnectCallback = (clientID: number) => void;
 
-interface clientMap {
-	[clientID: number]: net.Socket;
+interface ClientMap {
+	[clientID: number]: net.Socket
 }
 
-interface keyMap {
-	[clientID: number]: string;
+interface KeyMap {
+	[clientID: number]: string
+}
+
+interface Address {
+	host: string
+	port: number
 }
 
 const BACKLOG = 16;
@@ -21,8 +26,8 @@ export default class Server {
 	private onDisconnect: onDisconnectCallback;
 	private serving:      boolean    = false;
 	private server:       net.Server = null;
-	private clients:      clientMap  = {};
-	private keys:         keyMap     = {};
+	private clients:      ClientMap  = {};
+	private keys:         KeyMap     = {};
 	private nextClientID: number     = 0;
 
 	constructor(onRecv: onRecvCallback, onConnect: onConnectCallback, onDisconnect: onDisconnectCallback) {
@@ -38,7 +43,7 @@ export default class Server {
 	public async start(host: any = '0.0.0.0', port: any = 0): Promise<void> {
 		return new Promise((resolve, reject) => {
 			if (this.serving) {
-				reject('server is already serving');
+				reject(new Error('server is already serving'));
 			}
 
 			this.server = net.createServer(conn => {
@@ -62,7 +67,7 @@ export default class Server {
 	public async stop(): Promise<void> {
 		return new Promise((resolve, reject) => {
 			if (!this.serving) {
-				reject('server is not serving');
+				reject(new Error('server is not serving'));
 			}
 
 			this.serving = false;
@@ -84,7 +89,7 @@ export default class Server {
 	public async send(data: string, ...clientIDs: number[]): Promise<void> {
 		return new Promise((resolve, reject) => {
 			if (!this.serving) {
-				reject('server is not serving');
+				reject(new Error('server is not serving'));
 			}
 
 			if (clientIDs.length === 0) {
@@ -105,12 +110,58 @@ export default class Server {
 						}
 					});
 				} else {
-					reject(`client ${clientID} does not exist`);
+					reject(new Error(`client ${clientID} does not exist`));
 				}
 			}
 
 			wg.wait().then(resolve);
 		});
+	}
+
+	public isServing(): boolean {
+		return this.serving;
+	}
+
+	public getAddr(): Address {
+		if (!this.serving) {
+			throw new Error('server is not serving');
+		}
+
+		const addr = this.server.address();
+		if (typeof addr === 'string') {
+			return {
+				host: addr,
+				port: null
+			};
+		} else {
+			return {
+				host: addr.address,
+				port: addr.port
+			};
+		}
+	}
+
+	public getClientAddr(clientID: number): Address | string {
+		if (!this.serving) {
+			throw new Error('server is not serving');
+		}
+
+		if (clientID in this.clients) {
+			const addr = this.clients[clientID].address();
+			if (Object.keys(addr).length === 0) {
+				return {
+					host: null,
+					port: null
+				}
+			} else {
+				return {
+					host: (addr as net.AddressInfo).address,
+					port: (addr as net.AddressInfo).port
+				}
+			}
+		} else {
+			throw new Error(`client ${clientID} does not exist`);
+		}
 	}
 
 	private onData(clientID: number, data: Buffer): void {

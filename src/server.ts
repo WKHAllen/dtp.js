@@ -45,16 +45,10 @@ export default class Server {
 
 				this.clients[newClientID] = conn;
 				// TODO: do handshake and add key record to this.keys
+
 				this.onConnect(newClientID);
-
-				conn.on('data', data => {
-					// TODO: parse data received
-					this.onRecv(newClientID, data.toString());
-				});
-
-				conn.on('end', () => {
-					this.onDisconnect(newClientID);
-				});
+				conn.on('data', data => this.onData(newClientID, data));
+				conn.on('end', () => this.onDisconnect(newClientID));
 
 				conn.pipe(conn);
 			});
@@ -84,5 +78,10 @@ export default class Server {
 				}
 			});
 		});
+	}
+
+	private onData(clientID: number, data: Buffer): void {
+		// TODO: parse data received
+		this.onRecv(clientID, data.toString());
 	}
 }

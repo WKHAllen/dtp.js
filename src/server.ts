@@ -12,6 +12,8 @@ interface keyMap {
 	[clientID: number]: string;
 }
 
+const BACKLOG = 16;
+
 export default class Server {
 	private onRecv:       onRecvCallback;
 	private onConnect:    onConnectCallback;
@@ -26,5 +28,39 @@ export default class Server {
 		this.onRecv       = onRecv;
 		this.onConnect    = onConnect;
 		this.onDisconnect = onDisconnect;
+	}
+
+	public async start(): Promise<void>;
+	public async start(host: string): Promise<void>;
+	public async start(port: number): Promise<void>;
+	public async start(host: string, port: number): Promise<void>;
+	public async start(host: any = '0.0.0.0', port: any = 0): Promise<void> {
+		return new Promise((resolve, reject) => {
+			if (this.serving) {
+				reject('server is already serving');
+			}
+
+			this.server = net.createServer(conn => {
+				const newClientID = this.nextClientID++;
+
+				this.clients[newClientID] = conn;
+				// TODO: do handshake and add key record to this.keys
+				this.onConnect(newClientID);
+
+				conn.on('data', data => {
+					// TODO: parse data received
+					this.onRecv(newClientID, data.toString());
+				});
+
+				conn.on('end', () => {
+					this.onDisconnect(newClientID);
+				});
+
+				conn.pipe(conn);
+			});
+
+			this.server.listen(port, host, BACKLOG, resolve);
+			this.serving = true;
+		});
 	}
 }

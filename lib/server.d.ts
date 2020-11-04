@@ -11,5 +11,9 @@ export default class Server {
     private keys;
     private nextClientID;
     constructor(onRecv: onRecvCallback, onConnect: onConnectCallback, onDisconnect: onDisconnectCallback);
+    start(): Promise<void>;
+    start(host: string): Promise<void>;
+    start(port: number): Promise<void>;
+    start(host: string, port: number): Promise<void>;
 }
 export {};

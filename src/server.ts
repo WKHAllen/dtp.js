@@ -49,14 +49,17 @@ export default class Server {
 			this.server = net.createServer(conn => {
 				const newClientID = this.nextClientID++;
 
-				this.clients[newClientID] = conn;
-				// TODO: do handshake and add key record to this.keys
-
-				this.onConnect(newClientID);
-				conn.on('data', data => this.onData(newClientID, data));
-				conn.on('end', () => this.onDisconnect(newClientID));
-
-				conn.pipe(conn);
+				this.exchangeKeys(newClientID, conn)
+					.then(() => {
+						this.clients[newClientID] = conn;
+		
+						this.onConnect(newClientID);
+						conn.on('data', data => this.onData(newClientID, data));
+						conn.on('end', () => this.onDisconnect(newClientID));
+		
+						conn.pipe(conn);
+					})
+					.catch(reject);
 			});
 
 			this.serving = true;
@@ -114,7 +117,8 @@ export default class Server {
 				}
 			}
 
-			wg.wait().then(resolve);
+			wg.wait()
+				.then(resolve);
 		});
 	}
 
@@ -182,5 +186,11 @@ export default class Server {
 	private onData(clientID: number, data: Buffer): void {
 		// TODO: parse data received
 		this.onRecv(clientID, data.toString());
+	}
+
+	private async exchangeKeys(clientID: number, conn: net.Socket): Promise<void> {
+		return new Promise((resolve, reject) => {
+			// TODO: do handshake, exchange keys, and add key record to this.keys
+		});
 	}
 }

@@ -26,5 +26,6 @@ export default class Server {
     getClientAddr(clientID: number): Address | string;
     removeClient(clientID: number): void;
     private onData;
+    private exchangeKeys;
 }
 export {};

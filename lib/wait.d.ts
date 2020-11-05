@@ -1,5 +1,5 @@
 export declare function wait(ms: number): Promise<void>;
-export default class WaitGroup {
+export declare class WaitGroup {
     private total;
     add(numToAdd?: number): void;
     done(numDone?: number): void;

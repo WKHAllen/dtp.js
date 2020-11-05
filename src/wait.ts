@@ -4,7 +4,7 @@ export async function wait(ms: number): Promise<void> {
 	});
 }
 
-export default class WaitGroup {
+export class WaitGroup {
 	private total: number = 0;
 
 	public add(numToAdd: number = 1): void {

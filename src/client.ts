@@ -52,6 +52,22 @@ export class Client {
 		});
 	}
 
+	public async send(data: string): Promise<void> {
+		return new Promise((resolve, reject) => {
+			if (!this.connected) {
+				reject(new Error('client is not connected to a server'));
+			}
+
+			this.conn.write(data, err => {
+				if (err) {
+					reject(err);
+				} else {
+					resolve();
+				}
+			});
+		});
+	}
+
 	private onData(data: Buffer): void {
 		// TODO: parse data received
 		this.onRecv(data.toString());

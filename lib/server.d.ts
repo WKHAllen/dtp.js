@@ -1,10 +1,7 @@
+import { Address } from './defs';
 declare type onRecvCallback = (clientID: number, data: string) => void;
 declare type onConnectCallback = (clientID: number) => void;
 declare type onDisconnectCallback = (clientID: number) => void;
-interface Address {
-    host: string;
-    port: number;
-}
 export declare class Server {
     private onRecv;
     private onConnect;

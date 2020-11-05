@@ -1,3 +1,4 @@
+import { Address } from './defs';
 declare type onRecvCallback = (data: string) => void;
 declare type onDisconnectedCallback = () => void;
 export declare class Client {
@@ -13,6 +14,9 @@ export declare class Client {
     connect(host: string, port: number): Promise<void>;
     disconnect(): Promise<void>;
     send(data: string): Promise<void>;
+    isConnected(): boolean;
+    getAddr(): Address;
+    getServerAddr(): string;
     private onData;
     private exchangeKeys;
 }

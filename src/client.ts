@@ -105,7 +105,7 @@ export class Client {
 
 	private async exchangeKeys(conn: net.Socket): Promise<void> {
 		return new Promise((resolve, reject) => {
-			// TODO: do handshake, exchange keys, and add key record to this.keys
+			// TODO: do handshake, exchange keys, and add key record to this.key
 			resolve();
 		});
 	}

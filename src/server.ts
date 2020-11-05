@@ -1,6 +1,6 @@
 import * as net from 'net';
-import { WaitGroup } from './wait';
 import { BACKLOG, DEFAULT_HOST, DEFAULT_PORT, Address } from './defs';
+import { WaitGroup } from './wait';
 
 type onRecvCallback       = (clientID: number, data: string) => void;
 type onConnectCallback    = (clientID: number) => void;

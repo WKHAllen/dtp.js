@@ -1,6 +1,5 @@
 import * as net from 'net';
-import WaitGroup from './wait';
-import { DEFAULT_HOST, DEFAULT_PORT } from './defs';
+import { DEFAULT_HOST, DEFAULT_PORT, Address } from './defs';
 
 type onRecvCallback         = (data: string) => void;
 type onDisconnectedCallback = () => void;
@@ -66,6 +65,37 @@ export class Client {
 				}
 			});
 		});
+	}
+
+	public isConnected(): boolean {
+		return this.connected;
+	}
+
+	public getAddr(): Address {
+		if (!this.connected) {
+			throw new Error('client is not connected to a server');
+		}
+
+		const addr = this.conn.address();
+		if (Object.keys(addr).length === 0) {
+			return {
+				host: null,
+				port: null
+			}
+		} else {
+			return {
+				host: (addr as net.AddressInfo).address,
+				port: (addr as net.AddressInfo).port
+			}
+		}
+	}
+
+	public getServerAddr(): string {
+		if (!this.connected) {
+			throw new Error('client is not connected to a server');
+		}
+
+		return this.conn.remoteAddress;
 	}
 
 	private onData(data: Buffer): void {

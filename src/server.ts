@@ -1,6 +1,6 @@
 import * as net from 'net';
 import WaitGroup from './wait';
-import { BACKLOG, DEFAULT_HOST, DEFAULT_PORT } from './defs';
+import { BACKLOG, DEFAULT_HOST, DEFAULT_PORT, Address } from './defs';
 
 type onRecvCallback       = (clientID: number, data: string) => void;
 type onConnectCallback    = (clientID: number) => void;
@@ -12,11 +12,6 @@ interface ClientMap {
 
 interface KeyMap {
 	[clientID: number]: string
-}
-
-interface Address {
-	host: string
-	port: number
 }
 
 export class Server {

@@ -1,5 +1,6 @@
 import * as net from 'net';
 import * as util from './util';
+import { BACKLOG, DEFAULT_HOST, DEFAULT_PORT } from './defs';
 
 type onRecvCallback       = (clientID: number, data: string) => void;
 type onConnectCallback    = (clientID: number) => void;
@@ -17,8 +18,6 @@ interface Address {
 	host: string
 	port: number
 }
-
-const BACKLOG = 16;
 
 export default class Server {
 	private onRecv:       onRecvCallback;
@@ -40,7 +39,7 @@ export default class Server {
 	public async start(host: string): Promise<void>;
 	public async start(port: number): Promise<void>;
 	public async start(host: string, port: number): Promise<void>;
-	public async start(host: any = '0.0.0.0', port: any = 0): Promise<void> {
+	public async start(host: any = DEFAULT_HOST, port: any = DEFAULT_PORT): Promise<void> {
 		return new Promise((resolve, reject) => {
 			if (this.serving) {
 				reject(new Error('server is already serving'));
@@ -56,8 +55,6 @@ export default class Server {
 						this.onConnect(newClientID);
 						conn.on('data', data => this.onData(newClientID, data));
 						conn.on('end', () => this.onDisconnect(newClientID));
-		
-						conn.pipe(conn);
 					})
 					.catch(reject);
 			});
@@ -191,6 +188,7 @@ export default class Server {
 	private async exchangeKeys(clientID: number, conn: net.Socket): Promise<void> {
 		return new Promise((resolve, reject) => {
 			// TODO: do handshake, exchange keys, and add key record to this.keys
+			resolve();
 		});
 	}
 }

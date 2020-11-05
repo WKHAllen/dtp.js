@@ -40,6 +40,18 @@ export class Client {
 		});
 	}
 
+	public async disconnect(): Promise<void> {
+		return new Promise((resolve, reject) => {
+			if (!this.connected) {
+				reject(new Error('client is not connected to a server'));
+			}
+
+			this.connected = false;
+			this.conn.destroy();
+			resolve();
+		});
+	}
+
 	private onData(data: Buffer): void {
 		// TODO: parse data received
 		this.onRecv(data.toString());

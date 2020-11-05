@@ -11,6 +11,7 @@ export declare class Client {
     connect(host: string): Promise<void>;
     connect(port: number): Promise<void>;
     connect(host: string, port: number): Promise<void>;
+    disconnect(): Promise<void>;
     private onData;
     private exchangeKeys;
 }

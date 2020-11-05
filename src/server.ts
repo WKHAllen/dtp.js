@@ -19,7 +19,7 @@ interface Address {
 	port: number
 }
 
-export default class Server {
+export class Server {
 	private onRecv:       onRecvCallback;
 	private onConnect:    onConnectCallback;
 	private onDisconnect: onDisconnectCallback;

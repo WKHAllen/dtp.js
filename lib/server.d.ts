@@ -5,7 +5,7 @@ interface Address {
     host: string;
     port: number;
 }
-export default class Server {
+export declare class Server {
     private onRecv;
     private onConnect;
     private onDisconnect;

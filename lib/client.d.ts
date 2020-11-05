@@ -1,6 +1,6 @@
 declare type onRecvCallback = (data: string) => void;
 declare type onDisconnectedCallback = () => void;
-export default class Client {
+export declare class Client {
     private onRecv;
     private onDisconnected;
     private connected;

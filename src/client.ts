@@ -5,7 +5,7 @@ import { DEFAULT_HOST, DEFAULT_PORT } from './defs';
 type onRecvCallback         = (data: string) => void;
 type onDisconnectedCallback = () => void;
 
-export default class Client {
+export class Client {
 	private onRecv:         onRecvCallback;
 	private onDisconnected: onDisconnectedCallback;
 	private connected:      boolean;

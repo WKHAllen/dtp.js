@@ -1,5 +1,5 @@
 import * as net from 'net';
-import * as util from './util';
+import WaitGroup from './wait';
 import { BACKLOG, DEFAULT_HOST, DEFAULT_PORT } from './defs';
 
 type onRecvCallback       = (clientID: number, data: string) => void;
@@ -96,7 +96,7 @@ export class Server {
 				clientIDs = Object.keys(this.clients).map(clientID => parseInt(clientID));
 			}
 
-			const wg = new util.WaitGroup();
+			const wg = new WaitGroup();
 
 			for (const clientID of clientIDs) {
 				if (clientID in this.clients) {

@@ -1,5 +1,5 @@
 import * as net from 'net';
-import * as util from './util';
+import WaitGroup from './wait';
 import { DEFAULT_HOST, DEFAULT_PORT } from './defs';
 
 type onRecvCallback         = (data: string) => void;

@@ -1,6 +1,6 @@
 const { WaitGroup } = require('../dist/wait');
 
-test('wait group', async() => {
+test('test wait group', async() => {
 	const wg = new WaitGroup();
 
 	wg.add(3);

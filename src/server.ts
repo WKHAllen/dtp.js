@@ -73,6 +73,9 @@ export class Server extends TypedEmitter<ServerEvents> {
 				this.clients[clientID].destroy();
 			}
 
+			this.clients = {};
+			this.keys    = {};
+
 			this.server.close(err => {
 				if (err) {
 					reject(err);

@@ -31,7 +31,10 @@ export class Client extends TypedEmitter<ClientEvents> {
 
 			this.conn = net.connect(port, host, resolve);
 			this.conn.on('data', data => this.onData(data));
-			this.conn.on('end', () => this.emit('disconnected'));
+			this.conn.on('end', () => {
+				this.disconnect()
+					.then(() => this.emit('disconnected'));
+			});
 
 			this.exchangeKeys(this.conn)
 				.then(() => {

@@ -29,7 +29,10 @@ test('test send and receive', async() => {
 		expect(clientID).toBe(0);
 		expected.received('server disconnect');
 	});
+
+	expect(server.isServing()).toBe(false);
 	await server.start(host, port);
+	expect(server.isServing()).toBe(true);
 	await wait(waitTime);
 
 	const client = new Client();
@@ -40,16 +43,24 @@ test('test send and receive', async() => {
 	client.on('disconnected', () => { // Should not happen
 		expected.received('client disconnected');
 	});
+
+	expect(client.isConnected()).toBe(false);
 	await client.connect(host, port);
+	expect(client.isConnected()).toBe(true);
 	await wait(waitTime);
 
 	await client.send('Hello, server!');
 	await server.send('Hello, client!');
 
 	await wait(waitTime);
+	expect(client.isConnected()).toBe(true);
 	await client.disconnect();
+	expect(client.isConnected()).toBe(false);
+
 	await wait(waitTime);
+	expect(server.isServing()).toBe(true);
 	await server.stop();
+	expect(server.isServing()).toBe(false);
 	await wait(waitTime);
 
 	expect(expected.remaining()).toStrictEqual({});
@@ -78,7 +89,10 @@ test('test client disconnected', async() => {
 		expect(clientID).toBe(0);
 		expected.received('server disconnect');
 	});
+
+	expect(server.isServing()).toBe(false);
 	await server.start(host, port);
+	expect(server.isServing()).toBe(true);
 	await wait(waitTime);
 
 	const client = new Client();
@@ -89,12 +103,17 @@ test('test client disconnected', async() => {
 	client.on('disconnected', () => {
 		expected.received('client disconnected');
 	});
+
+	expect(client.isConnected()).toBe(false);
 	await client.connect(host, port);
+	expect(client.isConnected()).toBe(true);
 
 	await wait(waitTime);
+	expect(server.isServing()).toBe(true);
+	expect(client.isConnected()).toBe(true);
 	await server.stop();
+	expect(server.isServing()).toBe(false);
 	await wait(waitTime);
-
 	expect(client.isConnected()).toBe(false);
 
 	expect(expected.remaining()).toStrictEqual({});

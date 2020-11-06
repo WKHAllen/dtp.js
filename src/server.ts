@@ -51,7 +51,10 @@ export class Server extends TypedEmitter<ServerEvents> {
 
 						this.emit('connect', newClientID);
 						conn.on('data', data => this.onData(newClientID, data));
-						conn.on('end', () => this.emit('disconnect', newClientID));
+						conn.on('end', () => {
+							this.removeClient(newClientID);
+							this.emit('disconnect', newClientID);
+						});
 					})
 					.catch(reject);
 			});

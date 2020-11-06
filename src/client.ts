@@ -11,7 +11,7 @@ interface ClientEvents {
 }
 
 export class Client extends TypedEmitter<ClientEvents> {
-	private connected:      boolean;
+	private connected:      boolean = false;
 	private conn:           net.Socket;
 	private key:            string;
 
@@ -32,8 +32,8 @@ export class Client extends TypedEmitter<ClientEvents> {
 			this.conn = net.connect(port, host, resolve);
 			this.conn.on('data', data => this.onData(data));
 			this.conn.on('end', () => {
-				this.disconnect()
-					.then(() => this.emit('disconnected'));
+				this.connected = false;
+				this.emit('disconnected');
 			});
 
 			this.exchangeKeys(this.conn)

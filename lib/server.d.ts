@@ -1,6 +1,6 @@
 import { TypedEmitter } from 'tiny-typed-emitter';
 import { Address } from './defs';
-declare type onRecvCallback = (clientID: number, data: string) => void;
+declare type onRecvCallback = (clientID: number, data: any) => void;
 declare type onConnectCallback = (clientID: number) => void;
 declare type onDisconnectCallback = (clientID: number) => void;
 interface ServerEvents {
@@ -20,7 +20,7 @@ export declare class Server extends TypedEmitter<ServerEvents> {
     start(port: number): Promise<void>;
     start(host: string, port: number): Promise<void>;
     stop(): Promise<void>;
-    send(data: string, ...clientIDs: number[]): Promise<void>;
+    send(data: any, ...clientIDs: number[]): Promise<void>;
     isServing(): boolean;
     getAddr(): Address;
     getClientAddr(clientID: number): Address | string;

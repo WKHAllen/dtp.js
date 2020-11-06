@@ -2,7 +2,7 @@ import * as net from 'net';
 import { TypedEmitter } from 'tiny-typed-emitter';
 import { DEFAULT_HOST, DEFAULT_PORT, Address } from './defs';
 
-type onRecvCallback         = (data: string) => void;
+type onRecvCallback         = (data: any) => void;
 type onDisconnectedCallback = () => void;
 
 interface ClientEvents {
@@ -30,7 +30,7 @@ export class Client extends TypedEmitter<ClientEvents> {
 			}
 
 			this.conn = net.connect(port, host, resolve);
-			this.conn.on('data', data => this.onData(data));
+			this.conn.on('data', (data) => this.onData(data));
 			this.conn.on('end', () => {
 				this.connected = false;
 				this.emit('disconnected');
@@ -57,13 +57,14 @@ export class Client extends TypedEmitter<ClientEvents> {
 		});
 	}
 
-	public async send(data: string): Promise<void> {
+	public async send(data: any): Promise<void> {
 		return new Promise((resolve, reject) => {
 			if (!this.connected) {
 				reject(new Error('client is not connected to a server'));
 			}
 
-			this.conn.write(data, err => {
+			const strData = JSON.stringify(data);
+			this.conn.write(strData, (err) => {
 				if (err) {
 					reject(err);
 				} else {
@@ -107,9 +108,10 @@ export class Client extends TypedEmitter<ClientEvents> {
 		};
 	}
 
-	private onData(data: Buffer): void {
+	private onData(dataBuffer: Buffer): void {
 		// TODO: parse data received
-		this.emit('recv', data.toString());
+		const data = JSON.parse(dataBuffer.toString());
+		this.emit('recv', data);
 	}
 
 	private async exchangeKeys(conn: net.Socket): Promise<void> {

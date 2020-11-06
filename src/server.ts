@@ -3,7 +3,7 @@ import { TypedEmitter } from 'tiny-typed-emitter';
 import { BACKLOG, DEFAULT_HOST, DEFAULT_PORT, Address } from './defs';
 import { WaitGroup } from './wait';
 
-type onRecvCallback       = (clientID: number, data: string) => void;
+type onRecvCallback       = (clientID: number, data: any) => void;
 type onConnectCallback    = (clientID: number) => void;
 type onDisconnectCallback = (clientID: number) => void;
 
@@ -42,7 +42,7 @@ export class Server extends TypedEmitter<ServerEvents> {
 				reject(new Error('server is already serving'));
 			}
 
-			this.server = net.createServer(conn => {
+			this.server = net.createServer((conn) => {
 				const newClientID = this.nextClientID++;
 
 				this.exchangeKeys(newClientID, conn)
@@ -50,7 +50,7 @@ export class Server extends TypedEmitter<ServerEvents> {
 						this.clients[newClientID] = conn;
 
 						this.emit('connect', newClientID);
-						conn.on('data', data => this.onData(newClientID, data));
+						conn.on('data', (data) => this.onData(newClientID, data));
 						conn.on('end', () => {
 							this.removeClient(newClientID);
 							this.emit('disconnect', newClientID);
@@ -79,7 +79,7 @@ export class Server extends TypedEmitter<ServerEvents> {
 			this.clients = {};
 			this.keys    = {};
 
-			this.server.close(err => {
+			this.server.close((err) => {
 				if (err) {
 					reject(err);
 				} else {
@@ -89,23 +89,23 @@ export class Server extends TypedEmitter<ServerEvents> {
 		});
 	}
 
-	public async send(data: string, ...clientIDs: number[]): Promise<void> {
+	public async send(data: any, ...clientIDs: number[]): Promise<void> {
 		return new Promise((resolve, reject) => {
 			if (!this.serving) {
 				reject(new Error('server is not serving'));
 			}
 
 			if (clientIDs.length === 0) {
-				clientIDs = Object.keys(this.clients).map(clientID => parseInt(clientID));
+				clientIDs = Object.keys(this.clients).map((clientID) => parseInt(clientID));
 			}
 
 			const wg = new WaitGroup();
 
 			for (const clientID of clientIDs) {
 				if (clientID in this.clients) {
-					// TODO: build message
+					const strData = JSON.stringify(data);
 					wg.add();
-					this.clients[clientID].write(data, err => {
+					this.clients[clientID].write(strData, (err) => {
 						if (err) {
 							reject(err);
 						} else {
@@ -175,9 +175,10 @@ export class Server extends TypedEmitter<ServerEvents> {
 		}
 	}
 
-	private onData(clientID: number, data: Buffer): void {
+	private onData(clientID: number, dataBuffer: Buffer): void {
 		// TODO: parse data received
-		this.emit('recv', clientID, data.toString());
+		const data = JSON.parse(dataBuffer.toString());
+		this.emit('recv', clientID, data);
 	}
 
 	private async exchangeKeys(clientID: number, conn: net.Socket): Promise<void> {

@@ -151,17 +151,9 @@ export class Server extends TypedEmitter<ServerEvents> {
 		}
 
 		if (clientID in this.clients) {
-			const addr = this.clients[clientID].address();
-			if (Object.keys(addr).length === 0) {
-				return {
-					host: null,
-					port: null
-				}
-			} else {
-				return {
-					host: (addr as net.AddressInfo).address,
-					port: (addr as net.AddressInfo).port
-				}
+			return {
+				host: this.clients[clientID].remoteAddress,
+				port: this.clients[clientID].remotePort
 			}
 		} else {
 			throw new Error(`client ${clientID} does not exist`);

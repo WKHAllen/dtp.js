@@ -118,3 +118,19 @@ test('test client disconnected', async() => {
 
 	expect(expected.remaining()).toStrictEqual({});
 });
+
+test('test server and client address methods', async() => {
+	const server = new Server();
+	await server.start(host, port);
+
+	const client = new Client();
+	await client.connect(host, port);
+	await wait(waitTime);
+
+	expect(server.getAddr()).toStrictEqual({ host, port });
+	expect(client.getServerAddr()).toStrictEqual({ host, port });
+	expect(client.getAddr()).toStrictEqual(server.getClientAddr(0));
+
+	await client.disconnect();
+	await server.stop();
+});

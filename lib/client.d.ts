@@ -19,7 +19,7 @@ export declare class Client extends TypedEmitter<ClientEvents> {
     send(data: string): Promise<void>;
     isConnected(): boolean;
     getAddr(): Address;
-    getServerAddr(): string;
+    getServerAddr(): Address;
     private onData;
     private exchangeKeys;
 }

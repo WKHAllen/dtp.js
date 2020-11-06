@@ -85,8 +85,8 @@ export class Client extends TypedEmitter<ClientEvents> {
 		const addr = this.conn.address();
 		if (Object.keys(addr).length === 0) {
 			return {
-				host: null,
-				port: null
+				host: this.conn.localAddress,
+				port: this.conn.localPort
 			}
 		} else {
 			return {
@@ -96,12 +96,15 @@ export class Client extends TypedEmitter<ClientEvents> {
 		}
 	}
 
-	public getServerAddr(): string {
+	public getServerAddr(): Address {
 		if (!this.connected) {
 			throw new Error('client is not connected to a server');
 		}
 
-		return this.conn.remoteAddress;
+		return {
+			host: this.conn.remoteAddress,
+			port: this.conn.remotePort
+		};
 	}
 
 	private onData(data: Buffer): void {

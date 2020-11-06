@@ -77,16 +77,12 @@ test('test client disconnected', async() => {
 
 	const server = new Server();
 	server.on('recv', (clientID, data) => { // Should not happen
-		expect(clientID).toBe(0);
-		expect(data).toBe('Hello, server!');
 		expected.received('server recv');
 	});
 	server.on('connect', clientID => {
-		expect(clientID).toBe(0);
 		expected.received('server connect');
 	});
 	server.on('disconnect', clientID => { // Should not happen
-		expect(clientID).toBe(0);
 		expected.received('server disconnect');
 	});
 
@@ -97,7 +93,6 @@ test('test client disconnected', async() => {
 
 	const client = new Client();
 	client.on('recv', data => { // Should not happen
-		expect(data).toBe('Hello, client!');
 		expected.received('client recv');
 	});
 	client.on('disconnected', () => {
@@ -115,6 +110,49 @@ test('test client disconnected', async() => {
 	expect(server.isServing()).toBe(false);
 	await wait(waitTime);
 	expect(client.isConnected()).toBe(false);
+
+	expect(expected.remaining()).toStrictEqual({});
+});
+
+test('test remove client', async() => {
+	const expected = new Expect({
+		'server recv':         0,
+		'server connect':      1,
+		'server disconnect':   0,
+		'client recv':         0,
+		'client disconnected': 1
+	});
+
+	const server = new Server();
+	server.on('recv', (clientID, data) => { // Should not happen
+		expected.received('server recv');
+	});
+	server.on('connect', clientID => {
+		expected.received('server connect');
+	});
+	server.on('disconnect', clientID => { // Should not happen
+		expected.received('server disconnect');
+	});
+
+	await server.start(host, port);
+	await wait(waitTime);
+
+	const client = new Client();
+	client.on('recv', data => { // Should not happen
+		expected.received('client recv');
+	});
+	client.on('disconnected', () => {
+		expected.received('client disconnected');
+	});
+
+	await client.connect(host, port);
+	await wait(waitTime);
+
+	server.removeClient(0);
+
+	await wait(waitTime);
+	await server.stop();
+	await wait(waitTime);
 
 	expect(expected.remaining()).toStrictEqual({});
 });

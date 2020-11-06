@@ -1,19 +1,22 @@
 import * as net from 'net';
+import { TypedEmitter } from 'tiny-typed-emitter';
 import { DEFAULT_HOST, DEFAULT_PORT, Address } from './defs';
 
 type onRecvCallback         = (data: string) => void;
 type onDisconnectedCallback = () => void;
 
-export class Client {
-	private onRecv:         onRecvCallback;
-	private onDisconnected: onDisconnectedCallback;
+interface ClientEvents {
+	'recv':         onRecvCallback;
+	'disconnected': onDisconnectedCallback;
+}
+
+export class Client extends TypedEmitter<ClientEvents> {
 	private connected:      boolean;
 	private conn:           net.Socket;
 	private key:            string;
 
-	constructor(onRecv: onRecvCallback, onDisconnected: onDisconnectedCallback) {
-		this.onRecv         = onRecv;
-		this.onDisconnected = onDisconnected;
+	constructor() {
+		super();
 	}
 
 	public async connect(): Promise<void>;
@@ -28,7 +31,7 @@ export class Client {
 
 			this.conn = net.connect(port, host, resolve);
 			this.conn.on('data', data => this.onData(data));
-			this.conn.on('end', () => this.onDisconnected());
+			this.conn.on('end', () => this.emit('disconnected'));
 
 			this.exchangeKeys(this.conn)
 				.then(() => {
@@ -100,7 +103,7 @@ export class Client {
 
 	private onData(data: Buffer): void {
 		// TODO: parse data received
-		this.onRecv(data.toString());
+		this.emit('recv', data.toString());
 	}
 
 	private async exchangeKeys(conn: net.Socket): Promise<void> {

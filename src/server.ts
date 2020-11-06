@@ -1,4 +1,5 @@
 import * as net from 'net';
+import { TypedEmitter } from 'tiny-typed-emitter';
 import { BACKLOG, DEFAULT_HOST, DEFAULT_PORT, Address } from './defs';
 import { WaitGroup } from './wait';
 
@@ -7,27 +8,28 @@ type onConnectCallback    = (clientID: number) => void;
 type onDisconnectCallback = (clientID: number) => void;
 
 interface ClientMap {
-	[clientID: number]: net.Socket
+	[clientID: number]: net.Socket;
 }
 
 interface KeyMap {
-	[clientID: number]: string
+	[clientID: number]: string;
 }
 
-export class Server {
-	private onRecv:       onRecvCallback;
-	private onConnect:    onConnectCallback;
-	private onDisconnect: onDisconnectCallback;
+interface ServerEvents {
+	'recv':       onRecvCallback;
+	'connect':    onConnectCallback;
+	'disconnect': onDisconnectCallback;
+}
+
+export class Server extends TypedEmitter<ServerEvents> {
 	private serving:      boolean    = false;
 	private server:       net.Server = null;
 	private clients:      ClientMap  = {};
 	private keys:         KeyMap     = {};
 	private nextClientID: number     = 0;
 
-	constructor(onRecv: onRecvCallback, onConnect: onConnectCallback, onDisconnect: onDisconnectCallback) {
-		this.onRecv       = onRecv;
-		this.onConnect    = onConnect;
-		this.onDisconnect = onDisconnect;
+	constructor() {
+		super();
 	}
 
 	public async start(): Promise<void>;
@@ -46,10 +48,10 @@ export class Server {
 				this.exchangeKeys(newClientID, conn)
 					.then(() => {
 						this.clients[newClientID] = conn;
-		
-						this.onConnect(newClientID);
+
+						this.emit('connect', newClientID);
 						conn.on('data', data => this.onData(newClientID, data));
-						conn.on('end', () => this.onDisconnect(newClientID));
+						conn.on('end', () => this.emit('disconnect', newClientID));
 					})
 					.catch(reject);
 			});
@@ -177,7 +179,7 @@ export class Server {
 
 	private onData(clientID: number, data: Buffer): void {
 		// TODO: parse data received
-		this.onRecv(clientID, data.toString());
+		this.emit('recv', clientID, data.toString());
 	}
 
 	private async exchangeKeys(clientID: number, conn: net.Socket): Promise<void> {

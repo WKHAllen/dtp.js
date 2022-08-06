@@ -1,18 +1,19 @@
-import { TypedEmitter } from 'tiny-typed-emitter';
-import { Address } from './defs';
+import { TypedEmitter } from "tiny-typed-emitter";
+import { Address } from "./util";
 declare type onRecvCallback = (clientID: number, data: any) => void;
 declare type onConnectCallback = (clientID: number) => void;
 declare type onDisconnectCallback = (clientID: number) => void;
 interface ServerEvents {
-    'recv': onRecvCallback;
-    'connect': onConnectCallback;
-    'disconnect': onDisconnectCallback;
+    recv: onRecvCallback;
+    connect: onConnectCallback;
+    disconnect: onDisconnectCallback;
 }
 export declare class Server extends TypedEmitter<ServerEvents> {
     private serving;
     private server;
     private clients;
-    private keys;
+    private ciphers;
+    private deciphers;
     private nextClientID;
     constructor();
     start(): Promise<void>;

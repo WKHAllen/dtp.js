@@ -1,9 +1,15 @@
-class Expect {
-  constructor(expected) {
+interface ExpectMapInner {
+  [key: string]: number;
+}
+
+export class ExpectMap {
+  private expected: ExpectMapInner;
+
+  constructor(expected: ExpectMapInner) {
     this.expected = expected;
   }
 
-  received(name) {
+  public received(name: string) {
     if (name in this.expected) {
       this.expected[name]--;
     } else {
@@ -11,25 +17,23 @@ class Expect {
     }
   }
 
-  getExpected() {
+  public getExpected(): ExpectMapInner {
     return this.expected;
   }
 
-  remaining() {
+  public remaining(): ExpectMapInner {
     let remaining = {};
+
     for (const name in this.expected) {
       if (this.expected[name] !== 0) {
         remaining[name] = this.expected[name];
       }
     }
+
     return remaining;
   }
 
-  done() {
-    return this.remaining().length === 0;
+  public done(): boolean {
+    return Object.keys(this.remaining()).length === 0;
   }
 }
-
-module.exports = {
-  Expect,
-};

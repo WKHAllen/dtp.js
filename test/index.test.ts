@@ -1,13 +1,13 @@
-const { Client, Server } = require("../dist/index");
-const { wait } = require("../dist/wait");
-const { Expect } = require("./expect");
+import { Client, Server } from "../src";
+import { wait } from "../src/wait";
+import { ExpectMap } from "./expect-map";
 
 const waitTime = 100;
 const host = "127.0.0.1";
 const port = 29275;
 
 test("test send and receive", async () => {
-  const expected = new Expect({
+  const expected = new ExpectMap({
     "server recv": 1,
     "server connect": 1,
     "server disconnect": 1,
@@ -68,7 +68,7 @@ test("test send and receive", async () => {
 });
 
 test("test sending objects", async () => {
-  const expected = new Expect({
+  const expected = new ExpectMap({
     "server recv": 1,
     "server connect": 1,
     "server disconnect": 1,
@@ -119,7 +119,7 @@ test("test sending objects", async () => {
 });
 
 test("test client disconnected", async () => {
-  const expected = new Expect({
+  const expected = new ExpectMap({
     "server recv": 0,
     "server connect": 1,
     "server disconnect": 0,
@@ -170,7 +170,7 @@ test("test client disconnected", async () => {
 });
 
 test("test remove client", async () => {
-  const expected = new Expect({
+  const expected = new ExpectMap({
     "server recv": 0,
     "server connect": 1,
     "server disconnect": 0,

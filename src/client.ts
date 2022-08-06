@@ -120,5 +120,28 @@ export class Client extends TypedEmitter<ClientEvents> {
     this.emit("recv", data);
   }
 
-  private async exchangeKeys(conn: net.Socket): Promise<void> {}
+  private async exchangeKeys(conn: net.Socket): Promise<void> {
+    // return new Promise((resolve, reject) => {
+    //   conn.once("data", (publicKey) => {
+    //     const { key, iv, cipher, decipher } = newAESCipher();
+    //     const cipherData = JSON.stringify({
+    //       key: key.toString(),
+    //       iv: iv.toString(),
+    //     });
+    //     const encryptedCipherData = crypto.publicEncrypt(
+    //       publicKey,
+    //       Buffer.from(cipherData)
+    //     );
+    //     conn.write(encryptedCipherData, (err) => {
+    //       if (err) {
+    //         reject(err);
+    //       } else {
+    //         this.cipher = cipher;
+    //         this.decipher = decipher;
+    //         resolve();
+    //       }
+    //     });
+    //   });
+    // });
+  }
 }

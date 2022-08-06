@@ -196,5 +196,33 @@ export class Server extends TypedEmitter<ServerEvents> {
   private async exchangeKeys(
     clientID: number,
     conn: net.Socket
-  ): Promise<void> {}
+  ): Promise<void> {
+    // return new Promise((resolve, reject) => {
+    //   console.log("BEGINNING KEY EXCHANGE");
+    //   newRSAKeys().then(({ publicKey, privateKey }) => {
+    //     conn.write(publicKey.toString(), (err) => {
+    //       console.log("WROTE PUBLIC KEY TO SOCKET");
+    //       if (err) {
+    //         reject(err);
+    //       } else {
+    //         conn.once("data", (encryptedCipherData) => {
+    //           console.log("SYMMETRIC KEY RECEIVED FROM SOCKET");
+    //           const cipherData = crypto.privateDecrypt(
+    //             privateKey,
+    //             encryptedCipherData
+    //           );
+    //           const { key, iv } = JSON.parse(cipherData.toString());
+    //           const { cipher, decipher } = newAESCipherFromKeyIV(
+    //             Buffer.from(key),
+    //             Buffer.from(iv)
+    //           );
+    //           this.ciphers[clientID] = cipher;
+    //           this.deciphers[clientID] = decipher;
+    //           resolve();
+    //         });
+    //       }
+    //     });
+    //   });
+    // });
+  }
 }

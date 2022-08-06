@@ -1,4 +1,4 @@
-const { WaitGroup } = require("../dist/wait");
+import { WaitGroup } from "../src/wait";
 
 test("test wait group", async () => {
   const wg = new WaitGroup();

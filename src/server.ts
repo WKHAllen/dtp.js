@@ -3,7 +3,7 @@ import * as crypto from "crypto";
 import { TypedEmitter } from "tiny-typed-emitter";
 import {
   BACKLOG,
-  DEFAULT_HOST,
+  DEFAULT_SERVER_HOST,
   DEFAULT_PORT,
   Address,
   newRSAKeys,
@@ -46,7 +46,7 @@ export class Server<S = any, R = any> extends TypedEmitter<ServerEvents<R>> {
   public async start(port: number): Promise<void>;
   public async start(host: string, port: number): Promise<void>;
   public async start(
-    host: any = DEFAULT_HOST,
+    host: any = DEFAULT_SERVER_HOST,
     port: any = DEFAULT_PORT
   ): Promise<void> {
     return new Promise((resolve, reject) => {

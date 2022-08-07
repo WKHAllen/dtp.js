@@ -1,10 +1,13 @@
 import { Client, Server } from "../src";
 import { wait } from "../src/wait";
+import {
+  DEFAULT_CLIENT_HOST,
+  DEFAULT_SERVER_HOST,
+  DEFAULT_PORT,
+} from "../src/util";
 import { ExpectMap } from "./expect-map";
 
 const waitTime = 100;
-const host = "127.0.0.1";
-const port = 29275;
 
 test("test send and receive", async () => {
   const expected = new ExpectMap({
@@ -31,7 +34,7 @@ test("test send and receive", async () => {
   });
 
   expect(server.isServing()).toBe(false);
-  await server.start(host, port);
+  await server.start();
   expect(server.isServing()).toBe(true);
   await wait(waitTime);
 
@@ -46,7 +49,7 @@ test("test send and receive", async () => {
   });
 
   expect(client.isConnected()).toBe(false);
-  await client.connect(host, port);
+  await client.connect();
   expect(client.isConnected()).toBe(true);
   await wait(waitTime);
 
@@ -91,7 +94,7 @@ test("test sending objects", async () => {
     expected.received("server disconnect");
   });
 
-  await server.start(host, port);
+  await server.start();
 
   const client = new Client();
   client.on("recv", (data) => {
@@ -103,7 +106,7 @@ test("test sending objects", async () => {
     expected.received("client disconnected");
   });
 
-  await client.connect(host, port);
+  await client.connect();
   await wait(waitTime);
 
   await client.send({ hello: "server" });
@@ -141,7 +144,7 @@ test("test client disconnected", async () => {
   });
 
   expect(server.isServing()).toBe(false);
-  await server.start(host, port);
+  await server.start();
   expect(server.isServing()).toBe(true);
   await wait(waitTime);
 
@@ -155,7 +158,7 @@ test("test client disconnected", async () => {
   });
 
   expect(client.isConnected()).toBe(false);
-  await client.connect(host, port);
+  await client.connect();
   expect(client.isConnected()).toBe(true);
 
   await wait(waitTime);
@@ -191,7 +194,7 @@ test("test remove client", async () => {
     expected.received("server disconnect");
   });
 
-  await server.start(host, port);
+  await server.start();
   await wait(waitTime);
 
   const client = new Client();
@@ -203,7 +206,7 @@ test("test remove client", async () => {
     expected.received("client disconnected");
   });
 
-  await client.connect(host, port);
+  await client.connect();
   await wait(waitTime);
 
   server.removeClient(0);
@@ -217,14 +220,20 @@ test("test remove client", async () => {
 
 test("test server and client address methods", async () => {
   const server = new Server();
-  await server.start(host, port);
+  await server.start();
 
   const client = new Client();
-  await client.connect(host, port);
+  await client.connect();
   await wait(waitTime);
 
-  expect(server.getAddr()).toStrictEqual({ host, port });
-  expect(client.getServerAddr()).toStrictEqual({ host, port });
+  expect(server.getAddr()).toStrictEqual({
+    host: DEFAULT_SERVER_HOST,
+    port: DEFAULT_PORT,
+  });
+  expect(client.getServerAddr()).toStrictEqual({
+    host: DEFAULT_CLIENT_HOST,
+    port: DEFAULT_PORT,
+  });
   expect(client.getAddr()).toStrictEqual(server.getClientAddr(0));
 
   await client.disconnect();

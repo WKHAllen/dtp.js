@@ -1,7 +1,12 @@
 import * as net from "net";
 import * as crypto from "crypto";
 import { TypedEmitter } from "tiny-typed-emitter";
-import { DEFAULT_HOST, DEFAULT_PORT, Address, newAESCipher } from "./util";
+import {
+  DEFAULT_CLIENT_HOST,
+  DEFAULT_PORT,
+  Address,
+  newAESCipher,
+} from "./util";
 
 type onRecvCallback<R = any> = (data: R) => void;
 type onDisconnectedCallback = () => void;
@@ -26,7 +31,7 @@ export class Client<S = any, R = any> extends TypedEmitter<ClientEvents<R>> {
   public async connect(port: number): Promise<void>;
   public async connect(host: string, port: number): Promise<void>;
   public async connect(
-    host: any = DEFAULT_HOST,
+    host: any = DEFAULT_CLIENT_HOST,
     port: any = DEFAULT_PORT
   ): Promise<void> {
     return new Promise((resolve, reject) => {

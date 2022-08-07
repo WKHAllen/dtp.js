@@ -11,7 +11,7 @@ import {
 } from "./util";
 import { WaitGroup } from "./wait";
 
-type onRecvCallback = (clientID: number, data: any) => void;
+type onRecvCallback<R = any> = (clientID: number, data: R) => void;
 type onConnectCallback = (clientID: number) => void;
 type onDisconnectCallback = (clientID: number) => void;
 
@@ -23,15 +23,15 @@ interface CipherMap {
   [clientID: number]: crypto.Cipher | crypto.Decipher;
 }
 
-interface ServerEvents {
-  recv: onRecvCallback;
+interface ServerEvents<R = any> {
+  recv: onRecvCallback<R>;
   connect: onConnectCallback;
   disconnect: onDisconnectCallback;
 }
 
-export class Server extends TypedEmitter<ServerEvents> {
+export class Server<S = any, R = any> extends TypedEmitter<ServerEvents<R>> {
   private serving: boolean = false;
-  private server: net.Server = null;
+  private server: net.Server | null = null;
   private clients: ClientMap = {};
   private ciphers: CipherMap = {};
   private deciphers: CipherMap = {};
@@ -90,17 +90,21 @@ export class Server extends TypedEmitter<ServerEvents> {
       this.ciphers = {};
       this.deciphers = {};
 
-      this.server.close((err) => {
-        if (err) {
-          reject(err);
-        } else {
-          resolve();
-        }
-      });
+      if (this.server !== null) {
+        this.server.close((err) => {
+          if (err) {
+            reject(err);
+          } else {
+            resolve();
+          }
+        });
+      } else {
+        reject(new Error("server has not been started"));
+      }
     });
   }
 
-  public async send(data: any, ...clientIDs: number[]): Promise<void> {
+  public async send(data: S, ...clientIDs: number[]): Promise<void> {
     return new Promise((resolve, reject) => {
       if (!this.serving) {
         reject(new Error("server is not serving"));
@@ -138,35 +142,49 @@ export class Server extends TypedEmitter<ServerEvents> {
     return this.serving;
   }
 
-  public getAddr(): Address {
+  public getAddr(): Address | null {
     if (!this.serving) {
       throw new Error("server is not serving");
     }
 
-    const addr = this.server.address();
-    if (typeof addr === "string") {
-      return {
-        host: addr,
-        port: null,
-      };
+    if (this.server !== null) {
+      const addr = this.server.address();
+
+      if (addr === null) {
+        return null;
+      } else if (typeof addr === "string") {
+        return {
+          host: addr,
+          port: -1,
+        };
+      } else {
+        return {
+          host: addr.address,
+          port: addr.port,
+        };
+      }
     } else {
-      return {
-        host: addr.address,
-        port: addr.port,
-      };
+      throw new Error("server has not been started");
     }
   }
 
-  public getClientAddr(clientID: number): Address | string {
+  public getClientAddr(clientID: number): Address | null {
     if (!this.serving) {
       throw new Error("server is not serving");
     }
 
     if (clientID in this.clients) {
-      return {
-        host: this.clients[clientID].remoteAddress,
-        port: this.clients[clientID].remotePort,
-      };
+      const host = this.clients[clientID].remoteAddress;
+      const port = this.clients[clientID].remotePort;
+
+      if (host !== undefined && port !== undefined) {
+        return {
+          host,
+          port,
+        };
+      } else {
+        return null;
+      }
     } else {
       throw new Error(`client ${clientID} does not exist`);
     }

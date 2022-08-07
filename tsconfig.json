@@ -1,13 +1,10 @@
 {
   "compilerOptions": {
-    "module": "commonjs",
-    "esModuleInterop": true,
     "target": "es5",
-    "moduleResolution": "node",
-    "sourceMap": true,
-    "outDir": "dist",
+    "module": "commonjs",
     "declaration": true,
-    "declarationDir": "lib"
+    "outDir": "./lib",
+    "strict": true
   },
   "include": ["./src/**/*.ts"]
 }

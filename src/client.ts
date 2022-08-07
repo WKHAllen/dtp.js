@@ -3,19 +3,19 @@ import * as crypto from "crypto";
 import { TypedEmitter } from "tiny-typed-emitter";
 import { DEFAULT_HOST, DEFAULT_PORT, Address, newAESCipher } from "./util";
 
-type onRecvCallback = (data: any) => void;
+type onRecvCallback<R = any> = (data: R) => void;
 type onDisconnectedCallback = () => void;
 
-interface ClientEvents {
-  recv: onRecvCallback;
+interface ClientEvents<R = any> {
+  recv: onRecvCallback<R>;
   disconnected: onDisconnectedCallback;
 }
 
-export class Client extends TypedEmitter<ClientEvents> {
+export class Client<S = any, R = any> extends TypedEmitter<ClientEvents<R>> {
   private connected: boolean = false;
-  private conn: net.Socket;
-  private cipher: crypto.Cipher;
-  private decipher: crypto.Decipher;
+  private conn: net.Socket | null = null;
+  private cipher: crypto.Cipher | null = null;
+  private decipher: crypto.Decipher | null = null;
 
   constructor() {
     super();
@@ -38,14 +38,18 @@ export class Client extends TypedEmitter<ClientEvents> {
 
       this.exchangeKeys(this.conn)
         .then(() => {
-          this.conn.on("data", (data) => this.onData(data));
-          this.conn.on("end", () => {
-            this.connected = false;
-            this.emit("disconnected");
-          });
+          if (this.conn !== null) {
+            this.conn.on("data", (data) => this.onData(data));
+            this.conn.on("end", () => {
+              this.connected = false;
+              this.emit("disconnected");
+            });
 
-          this.connected = true;
-          resolve();
+            this.connected = true;
+            resolve();
+          } else {
+            reject(new Error("client has not connected to a server"));
+          }
         })
         .catch(reject);
     });
@@ -57,26 +61,35 @@ export class Client extends TypedEmitter<ClientEvents> {
         reject(new Error("client is not connected to a server"));
       }
 
-      this.connected = false;
-      this.conn.destroy();
-      resolve();
+      if (this.conn !== null) {
+        this.connected = false;
+        this.conn.destroy();
+        resolve();
+      } else {
+        reject(new Error("client has not connected to a server"));
+      }
     });
   }
 
-  public async send(data: any): Promise<void> {
+  public async send(data: S): Promise<void> {
     return new Promise((resolve, reject) => {
       if (!this.connected) {
         reject(new Error("client is not connected to a server"));
       }
 
       const strData = JSON.stringify(data);
-      this.conn.write(strData, (err) => {
-        if (err) {
-          reject(err);
-        } else {
-          resolve();
-        }
-      });
+
+      if (this.conn !== null) {
+        this.conn.write(strData, (err) => {
+          if (err) {
+            reject(err);
+          } else {
+            resolve();
+          }
+        });
+      } else {
+        reject(new Error("client has not connected to a server"));
+      }
     });
   }
 
@@ -89,29 +102,45 @@ export class Client extends TypedEmitter<ClientEvents> {
       throw new Error("client is not connected to a server");
     }
 
-    const addr = this.conn.address();
-    if (Object.keys(addr).length === 0) {
-      return {
-        host: this.conn.localAddress,
-        port: this.conn.localPort,
-      };
+    if (this.conn !== null) {
+      const addr = this.conn.address();
+
+      if (Object.keys(addr).length === 0) {
+        return {
+          host: this.conn.localAddress,
+          port: this.conn.localPort,
+        };
+      } else {
+        return {
+          host: (addr as net.AddressInfo).address,
+          port: (addr as net.AddressInfo).port,
+        };
+      }
     } else {
-      return {
-        host: (addr as net.AddressInfo).address,
-        port: (addr as net.AddressInfo).port,
-      };
+      throw new Error("client has not connected to a server");
     }
   }
 
-  public getServerAddr(): Address {
+  public getServerAddr(): Address | null {
     if (!this.connected) {
       throw new Error("client is not connected to a server");
     }
 
-    return {
-      host: this.conn.remoteAddress,
-      port: this.conn.remotePort,
-    };
+    if (this.conn !== null) {
+      const host = this.conn.remoteAddress;
+      const port = this.conn.remotePort;
+
+      if (host !== undefined && port !== undefined) {
+        return {
+          host,
+          port,
+        };
+      } else {
+        return null;
+      }
+    } else {
+      throw new Error("client has not connected to a server");
+    }
   }
 
   private onData(dataBuffer: Buffer): void {

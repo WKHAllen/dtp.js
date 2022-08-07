@@ -22,7 +22,7 @@ export class ExpectMap {
   }
 
   public remaining(): ExpectMapInner {
-    let remaining = {};
+    const remaining: ExpectMapInner = {};
 
     for (const name in this.expected) {
       if (this.expected[name] !== 0) {

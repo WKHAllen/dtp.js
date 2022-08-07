@@ -3,10 +3,18 @@
   "version": "0.1.0",
   "description": "A cross platform networking library for JavaScript/TypeScript",
   "types": "./lib/index.d.ts",
+  "files": [
+    "lib/**/*"
+  ],
   "scripts": {
     "start": "npm run build && node dist/index.js",
     "build": "tsc",
-    "test": "npm run build && jest"
+    "test": "npm run build && jest",
+    "prepare": "npm run build",
+    "prepublishOnly": "npm test && npm run lint",
+    "preversion": "npm run lint",
+    "version": "npm run format && git add -A src",
+    "postversion": "git push && git push --tags"
   },
   "repository": {
     "type": "git",

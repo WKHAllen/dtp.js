@@ -6,12 +6,14 @@ import {
   DEFAULT_SERVER_HOST,
   DEFAULT_PORT,
   Address,
+  encode_message_size,
+  MessageStream,
   newRSAKeys,
   newAESCipherFromKeyIV,
 } from "./util";
 import { WaitGroup } from "./wait";
 
-type onRecvCallback<R = any> = (clientID: number, data: R) => void;
+type onRecvCallback<R> = (clientID: number, data: R) => void;
 type onConnectCallback = (clientID: number) => void;
 type onDisconnectCallback = (clientID: number) => void;
 
@@ -19,20 +21,25 @@ interface ClientMap {
   [clientID: number]: net.Socket;
 }
 
+interface ClientMessageStreamMap {
+  [clientID: number]: MessageStream;
+}
+
 interface CipherMap {
   [clientID: number]: crypto.Cipher | crypto.Decipher;
 }
 
-interface ServerEvents<R = any> {
+interface ServerEvents<R> {
   recv: onRecvCallback<R>;
   connect: onConnectCallback;
   disconnect: onDisconnectCallback;
 }
 
-export class Server<S = any, R = any> extends TypedEmitter<ServerEvents<R>> {
+export class Server<S, R> extends TypedEmitter<ServerEvents<R>> {
   private serving: boolean = false;
   private server: net.Server | null = null;
   private clients: ClientMap = {};
+  private messageStreams: ClientMessageStreamMap = {};
   private ciphers: CipherMap = {};
   private deciphers: CipherMap = {};
   private nextClientID: number = 0;
@@ -59,9 +66,16 @@ export class Server<S = any, R = any> extends TypedEmitter<ServerEvents<R>> {
 
         this.exchangeKeys(newClientID, conn).then(() => {
           this.clients[newClientID] = conn;
+          this.messageStreams[newClientID] = new MessageStream();
 
           this.emit("connect", newClientID);
-          conn.on("data", (data) => this.onData(newClientID, data));
+          conn.on("data", (data) => {
+            const msgs = this.messageStreams[newClientID].received(data);
+
+            for (const msg of msgs) {
+              this.onData(newClientID, msg);
+            }
+          });
           conn.on("end", () => {
             this.removeClient(newClientID);
             this.emit("disconnect", newClientID);
@@ -118,11 +132,17 @@ export class Server<S = any, R = any> extends TypedEmitter<ServerEvents<R>> {
 
       const wg = new WaitGroup();
 
+      const strData = JSON.stringify(data);
+      const bufData = Buffer.from(strData);
+      const dataBuffer = Buffer.concat([
+        encode_message_size(bufData.length),
+        bufData,
+      ]);
+
       for (const clientID of clientIDs) {
         if (clientID in this.clients) {
-          const strData = JSON.stringify(data);
           wg.add();
-          this.clients[clientID].write(strData, (err) => {
+          this.clients[clientID].write(dataBuffer, (err) => {
             if (err) {
               reject(err);
             } else {

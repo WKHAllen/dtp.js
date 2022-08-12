@@ -1,5 +1,6 @@
 import * as crypto from "crypto";
 
+export const LEN_SIZE = 5;
 export const BACKLOG = 16;
 export const DEFAULT_SERVER_HOST = "0.0.0.0";
 export const DEFAULT_CLIENT_HOST = "127.0.0.1";
@@ -25,6 +26,74 @@ interface AESCipher {
 interface AESCipherDecipher {
   cipher: crypto.Cipher;
   decipher: crypto.Decipher;
+}
+
+export function encode_message_size(size: number): Uint8Array {
+  let big_size = BigInt(size);
+  const encoded_size = new Uint8Array(LEN_SIZE);
+
+  for (let i = 0; i < LEN_SIZE; i++) {
+    encoded_size[LEN_SIZE - i - 1] = Number(big_size % BigInt(256));
+    big_size >>= BigInt(8);
+  }
+
+  return encoded_size;
+}
+
+export function decode_message_size(encoded_size: Uint8Array): number {
+  let size = BigInt(0);
+
+  for (let i = 0; i < LEN_SIZE; i++) {
+    size <<= BigInt(8);
+    size += BigInt(encoded_size[i]);
+  }
+
+  return Number(size);
+}
+
+export class MessageStream {
+  private message: Buffer = Buffer.from("");
+  private messageLength: number = 0;
+
+  public received(messageSegment?: Buffer): Buffer[] {
+    if (messageSegment !== undefined) {
+      if (this.message.length === 0) {
+        this.messageLength = decode_message_size(
+          messageSegment.slice(0, LEN_SIZE)
+        );
+        this.message = messageSegment.slice(LEN_SIZE);
+      } else {
+        this.message = Buffer.concat([this.message, messageSegment]);
+      }
+    }
+
+    if (
+      this.message.length > 0 &&
+      this.messageLength > 0 &&
+      this.message.length >= this.messageLength
+    ) {
+      const msg = this.message.slice(0, this.messageLength);
+      const nextMessage = this.message.slice(this.messageLength);
+
+      if (nextMessage.length >= LEN_SIZE) {
+        this.messageLength = decode_message_size(
+          nextMessage.slice(0, LEN_SIZE)
+        );
+        this.message = nextMessage.slice(LEN_SIZE);
+
+        return [msg, ...this.received()];
+      } else if (nextMessage.length === 0) {
+        this.messageLength = 0;
+        this.message = Buffer.from("");
+
+        return [msg];
+      } else {
+        throw new Error("message segment incomplete");
+      }
+    } else {
+      return [];
+    }
+  }
 }
 
 export async function newRSAKeys(length: number = 4096): Promise<RSAKeys> {

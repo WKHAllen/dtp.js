@@ -5,20 +5,23 @@ import {
   DEFAULT_CLIENT_HOST,
   DEFAULT_PORT,
   Address,
+  encode_message_size,
+  MessageStream,
   newAESCipher,
 } from "./util";
 
-type onRecvCallback<R = any> = (data: R) => void;
+type onRecvCallback<R> = (data: R) => void;
 type onDisconnectedCallback = () => void;
 
-interface ClientEvents<R = any> {
+interface ClientEvents<R> {
   recv: onRecvCallback<R>;
   disconnected: onDisconnectedCallback;
 }
 
-export class Client<S = any, R = any> extends TypedEmitter<ClientEvents<R>> {
+export class Client<S, R> extends TypedEmitter<ClientEvents<R>> {
   private connected: boolean = false;
   private conn: net.Socket | null = null;
+  private messageStream: MessageStream = new MessageStream();
   private cipher: crypto.Cipher | null = null;
   private decipher: crypto.Decipher | null = null;
 
@@ -44,7 +47,13 @@ export class Client<S = any, R = any> extends TypedEmitter<ClientEvents<R>> {
       this.exchangeKeys(this.conn)
         .then(() => {
           if (this.conn !== null) {
-            this.conn.on("data", (data) => this.onData(data));
+            this.conn.on("data", (data) => {
+              const msgs = this.messageStream.received(data);
+
+              for (const msg of msgs) {
+                this.onData(msg);
+              }
+            });
             this.conn.on("end", () => {
               this.connected = false;
               this.emit("disconnected");
@@ -82,10 +91,15 @@ export class Client<S = any, R = any> extends TypedEmitter<ClientEvents<R>> {
         reject(new Error("client is not connected to a server"));
       }
 
-      const strData = JSON.stringify(data);
-
       if (this.conn !== null) {
-        this.conn.write(strData, (err) => {
+        const strData = JSON.stringify(data);
+        const bufData = Buffer.from(strData);
+        const dataBuffer = Buffer.concat([
+          encode_message_size(bufData.length),
+          bufData,
+        ]);
+
+        this.conn.write(dataBuffer, (err) => {
           if (err) {
             reject(err);
           } else {

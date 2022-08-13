@@ -5,6 +5,8 @@ export const BACKLOG = 16;
 export const DEFAULT_SERVER_HOST = "0.0.0.0";
 export const DEFAULT_CLIENT_HOST = "127.0.0.1";
 export const DEFAULT_PORT = 29275;
+export const KEY_SIZE = 32;
+export const IV_SIZE = 16;
 
 export interface Address {
   host: string;
@@ -98,7 +100,6 @@ export class MessageStream {
 
 export async function newRSAKeys(length: number = 4096): Promise<RSAKeys> {
   return new Promise((resolve, reject) => {
-    const passphrase = crypto.randomBytes(256).toString();
     const rsaOptions = {
       modulusLength: length,
       publicKeyEncoding: {
@@ -109,7 +110,7 @@ export async function newRSAKeys(length: number = 4096): Promise<RSAKeys> {
         type: "pkcs8",
         format: "pem",
         cipher: "aes-256-cbc",
-        passphrase,
+        passphrase: "",
       },
     };
 
@@ -123,11 +124,15 @@ export async function newRSAKeys(length: number = 4096): Promise<RSAKeys> {
   });
 }
 
+export function newAESKey(): Buffer {
+  return crypto.randomBytes(KEY_SIZE);
+}
+
 export function newAESCipher(): AESCipher {
-  const key = crypto.randomBytes(32);
-  const iv = crypto.randomBytes(16);
-  const cipher = crypto.createCipheriv("aes-256-cbc", Buffer.from(key), iv);
-  const decipher = crypto.createDecipheriv("aes-256-cbc", Buffer.from(key), iv);
+  const key = crypto.randomBytes(KEY_SIZE);
+  const iv = crypto.randomBytes(IV_SIZE);
+  const cipher = crypto.createCipheriv("aes-256-cbc", key, iv);
+  const decipher = crypto.createDecipheriv("aes-256-cbc", key, iv);
   return { key, iv, cipher, decipher };
 }
 
@@ -135,7 +140,24 @@ export function newAESCipherFromKeyIV(
   key: Buffer,
   iv: Buffer
 ): AESCipherDecipher {
-  const cipher = crypto.createCipheriv("aes-256-cbc", Buffer.from(key), iv);
-  const decipher = crypto.createDecipheriv("aes-256-cbc", Buffer.from(key), iv);
+  const cipher = crypto.createCipheriv("aes-256-cbc", key, iv);
+  const decipher = crypto.createDecipheriv("aes-256-cbc", key, iv);
   return { cipher, decipher };
+}
+
+export function aesEncrypt(key: Buffer, plaintext: Buffer): Buffer {
+  const iv = crypto.randomBytes(IV_SIZE);
+  const cipher = crypto.createCipheriv("aes-256-cbc", key, iv);
+  const ciphertext = cipher.update(plaintext);
+  const ciphertextWithIV = Buffer.concat([iv, ciphertext, cipher.final()]);
+  return ciphertextWithIV;
+}
+
+export function aesDecrypt(key: Buffer, ciphertextWithIV: Buffer): Buffer {
+  const iv = ciphertextWithIV.slice(0, IV_SIZE);
+  const ciphertext = ciphertextWithIV.slice(IV_SIZE);
+  const decipher = crypto.createDecipheriv("aes-256-cbc", key, iv);
+  const plaintext = decipher.update(ciphertext);
+  const plaintextFinal = Buffer.concat([plaintext, decipher.final()]);
+  return plaintextFinal;
 }

@@ -167,6 +167,7 @@ test("test sending objects", async () => {
   });
 
   await server.start();
+  await wait(waitTime);
 
   const client = new Client();
   client.on("recv", (data) => {

@@ -9,7 +9,8 @@ import {
   encode_message_size,
   MessageStream,
   newRSAKeys,
-  newAESCipherFromKeyIV,
+  aesEncrypt,
+  aesDecrypt,
 } from "./util";
 import { WaitGroup } from "./wait";
 
@@ -25,8 +26,8 @@ interface ClientMessageStreamMap {
   [clientID: number]: MessageStream;
 }
 
-interface CipherMap {
-  [clientID: number]: crypto.Cipher | crypto.Decipher;
+interface KeyMap {
+  [clientID: number]: Buffer;
 }
 
 interface ServerEvents<R> {
@@ -40,8 +41,7 @@ export class Server<S, R> extends TypedEmitter<ServerEvents<R>> {
   private server: net.Server | null = null;
   private clients: ClientMap = {};
   private messageStreams: ClientMessageStreamMap = {};
-  private ciphers: CipherMap = {};
-  private deciphers: CipherMap = {};
+  private keys: KeyMap = {};
   private nextClientID: number = 0;
 
   constructor() {
@@ -64,23 +64,27 @@ export class Server<S, R> extends TypedEmitter<ServerEvents<R>> {
       this.server = net.createServer((conn) => {
         const newClientID = this.nextClientID++;
 
-        this.exchangeKeys(newClientID, conn).then(() => {
-          this.clients[newClientID] = conn;
-          this.messageStreams[newClientID] = new MessageStream();
+        this.exchangeKeys(newClientID, conn)
+          .then(() => {
+            this.clients[newClientID] = conn;
+            this.messageStreams[newClientID] = new MessageStream();
 
-          this.emit("connect", newClientID);
-          conn.on("data", (data) => {
-            const msgs = this.messageStreams[newClientID].received(data);
+            this.emit("connect", newClientID);
+            conn.on("data", (data) => {
+              const msgs = this.messageStreams[newClientID].received(data);
 
-            for (const msg of msgs) {
-              this.onData(newClientID, msg);
-            }
+              for (const msg of msgs) {
+                this.onData(newClientID, msg);
+              }
+            });
+            conn.on("end", () => {
+              this.removeClient(newClientID);
+              this.emit("disconnect", newClientID);
+            });
+          })
+          .catch((err) => {
+            throw err;
           });
-          conn.on("end", () => {
-            this.removeClient(newClientID);
-            this.emit("disconnect", newClientID);
-          });
-        });
       });
 
       this.serving = true;
@@ -101,8 +105,7 @@ export class Server<S, R> extends TypedEmitter<ServerEvents<R>> {
       }
 
       this.clients = {};
-      this.ciphers = {};
-      this.deciphers = {};
+      this.keys = {};
 
       if (this.server !== null) {
         this.server.close((err) => {
@@ -132,16 +135,18 @@ export class Server<S, R> extends TypedEmitter<ServerEvents<R>> {
 
       const wg = new WaitGroup();
 
-      const strData = JSON.stringify(data);
-      const bufData = Buffer.from(strData);
-      const dataBuffer = Buffer.concat([
-        encode_message_size(bufData.length),
-        bufData,
-      ]);
-
       for (const clientID of clientIDs) {
         if (clientID in this.clients) {
+          const strData = JSON.stringify(data);
+          const bufData = Buffer.from(strData);
+          const encryptedData = aesEncrypt(this.keys[clientID], bufData);
+          const dataBuffer = Buffer.concat([
+            encode_message_size(encryptedData.length),
+            encryptedData,
+          ]);
+
           wg.add();
+
           this.clients[clientID].write(dataBuffer, (err) => {
             if (err) {
               reject(err);
@@ -218,16 +223,15 @@ export class Server<S, R> extends TypedEmitter<ServerEvents<R>> {
     if (clientID in this.clients) {
       this.clients[clientID].destroy();
       delete this.clients[clientID];
-      delete this.ciphers[clientID];
-      delete this.deciphers[clientID];
+      delete this.keys[clientID];
     } else {
       throw new Error(`client ${clientID} does not exist`);
     }
   }
 
   private onData(clientID: number, dataBuffer: Buffer): void {
-    // TODO: parse data received
-    const data = JSON.parse(dataBuffer.toString());
+    const decryptedData = aesDecrypt(this.keys[clientID], dataBuffer);
+    const data = JSON.parse(decryptedData.toString());
     this.emit("recv", clientID, data);
   }
 
@@ -235,32 +239,28 @@ export class Server<S, R> extends TypedEmitter<ServerEvents<R>> {
     clientID: number,
     conn: net.Socket
   ): Promise<void> {
-    // return new Promise((resolve, reject) => {
-    //   console.log("BEGINNING KEY EXCHANGE");
-    //   newRSAKeys().then(({ publicKey, privateKey }) => {
-    //     conn.write(publicKey.toString(), (err) => {
-    //       console.log("WROTE PUBLIC KEY TO SOCKET");
-    //       if (err) {
-    //         reject(err);
-    //       } else {
-    //         conn.once("data", (encryptedCipherData) => {
-    //           console.log("SYMMETRIC KEY RECEIVED FROM SOCKET");
-    //           const cipherData = crypto.privateDecrypt(
-    //             privateKey,
-    //             encryptedCipherData
-    //           );
-    //           const { key, iv } = JSON.parse(cipherData.toString());
-    //           const { cipher, decipher } = newAESCipherFromKeyIV(
-    //             Buffer.from(key),
-    //             Buffer.from(iv)
-    //           );
-    //           this.ciphers[clientID] = cipher;
-    //           this.deciphers[clientID] = decipher;
-    //           resolve();
-    //         });
-    //       }
-    //     });
-    //   });
-    // });
+    return new Promise((resolve, reject) => {
+      newRSAKeys()
+        .then(({ publicKey, privateKey }) => {
+          conn.write(Buffer.from(publicKey.toString()), (err) => {
+            if (err) {
+              reject(err);
+            } else {
+              conn.once("data", (encryptedCipherData) => {
+                const key = crypto.privateDecrypt(
+                  {
+                    key: privateKey,
+                    passphrase: "",
+                  },
+                  encryptedCipherData
+                );
+                this.keys[clientID] = key;
+                resolve();
+              });
+            }
+          });
+        })
+        .catch(reject);
+    });
   }
 }

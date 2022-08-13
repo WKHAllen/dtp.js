@@ -7,7 +7,9 @@ import {
   Address,
   encode_message_size,
   MessageStream,
-  newAESCipher,
+  newAESKey,
+  aesEncrypt,
+  aesDecrypt,
 } from "./util";
 
 type onRecvCallback<R> = (data: R) => void;
@@ -22,8 +24,7 @@ export class Client<S, R> extends TypedEmitter<ClientEvents<R>> {
   private connected: boolean = false;
   private conn: net.Socket | null = null;
   private messageStream: MessageStream = new MessageStream();
-  private cipher: crypto.Cipher | null = null;
-  private decipher: crypto.Decipher | null = null;
+  private key: Buffer | null = null;
 
   constructor() {
     super();
@@ -42,30 +43,34 @@ export class Client<S, R> extends TypedEmitter<ClientEvents<R>> {
         reject(new Error("client is already connected to a server"));
       }
 
-      this.conn = net.connect(port, host, resolve);
+      this.conn = net.connect(port, host, () => {
+        if (this.conn === null) {
+          throw new Error("client connection not established");
+        } else {
+          this.exchangeKeys(this.conn)
+            .then(() => {
+              if (this.conn !== null) {
+                this.conn.on("data", (data) => {
+                  const msgs = this.messageStream.received(data);
 
-      this.exchangeKeys(this.conn)
-        .then(() => {
-          if (this.conn !== null) {
-            this.conn.on("data", (data) => {
-              const msgs = this.messageStream.received(data);
+                  for (const msg of msgs) {
+                    this.onData(msg);
+                  }
+                });
+                this.conn.on("end", () => {
+                  this.connected = false;
+                  this.emit("disconnected");
+                });
 
-              for (const msg of msgs) {
-                this.onData(msg);
+                this.connected = true;
+                resolve();
+              } else {
+                reject(new Error("client has not connected to a server"));
               }
-            });
-            this.conn.on("end", () => {
-              this.connected = false;
-              this.emit("disconnected");
-            });
-
-            this.connected = true;
-            resolve();
-          } else {
-            reject(new Error("client has not connected to a server"));
-          }
-        })
-        .catch(reject);
+            })
+            .catch(reject);
+        }
+      });
     });
   }
 
@@ -91,12 +96,13 @@ export class Client<S, R> extends TypedEmitter<ClientEvents<R>> {
         reject(new Error("client is not connected to a server"));
       }
 
-      if (this.conn !== null) {
+      if (this.conn !== null && this.key !== null) {
         const strData = JSON.stringify(data);
         const bufData = Buffer.from(strData);
+        const encryptedData = aesEncrypt(this.key, bufData);
         const dataBuffer = Buffer.concat([
-          encode_message_size(bufData.length),
-          bufData,
+          encode_message_size(encryptedData.length),
+          encryptedData,
         ]);
 
         this.conn.write(dataBuffer, (err) => {
@@ -163,33 +169,30 @@ export class Client<S, R> extends TypedEmitter<ClientEvents<R>> {
   }
 
   private onData(dataBuffer: Buffer): void {
-    // TODO: parse data received
-    const data = JSON.parse(dataBuffer.toString());
-    this.emit("recv", data);
+    if (this.key !== null) {
+      const decryptedData = aesDecrypt(this.key, dataBuffer);
+      const data = JSON.parse(decryptedData.toString());
+      this.emit("recv", data);
+    } else {
+      throw new Error("received data but could not find decryption key");
+    }
   }
 
   private async exchangeKeys(conn: net.Socket): Promise<void> {
-    // return new Promise((resolve, reject) => {
-    //   conn.once("data", (publicKey) => {
-    //     const { key, iv, cipher, decipher } = newAESCipher();
-    //     const cipherData = JSON.stringify({
-    //       key: key.toString(),
-    //       iv: iv.toString(),
-    //     });
-    //     const encryptedCipherData = crypto.publicEncrypt(
-    //       publicKey,
-    //       Buffer.from(cipherData)
-    //     );
-    //     conn.write(encryptedCipherData, (err) => {
-    //       if (err) {
-    //         reject(err);
-    //       } else {
-    //         this.cipher = cipher;
-    //         this.decipher = decipher;
-    //         resolve();
-    //       }
-    //     });
-    //   });
-    // });
+    return new Promise((resolve, reject) => {
+      conn.once("data", (publicKey) => {
+        const key = newAESKey();
+        const encryptedCipherData = crypto.publicEncrypt(publicKey, key);
+
+        conn.write(encryptedCipherData, (err) => {
+          if (err) {
+            reject(err);
+          } else {
+            this.key = key;
+            resolve();
+          }
+        });
+      });
+    });
   }
 }

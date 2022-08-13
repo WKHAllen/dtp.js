@@ -1,5 +1,8 @@
 import { MessageStream } from "../src/message-stream";
 
+/**
+ * Test message streams.
+ */
 test("test message stream", () => {
   const messageStream = new MessageStream();
 

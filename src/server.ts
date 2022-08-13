@@ -6,50 +6,135 @@ import {
   DEFAULT_SERVER_HOST,
   DEFAULT_PORT,
   Address,
-  encode_message_size,
+  encodeMessageSize,
 } from "./util";
 import { MessageStream } from "./message-stream";
 import { newRSAKeys, aesEncrypt, aesDecrypt } from "./crypto";
 import { WaitGroup } from "./wait";
 
+/**
+ * A callback for when data is received from a client. `R` is the type of data received.
+ */
 type onRecvCallback<R> = (clientID: number, data: R) => void;
+
+/**
+ * A callback for when a client connects to the server.
+ */
 type onConnectCallback = (clientID: number) => void;
+
+/**
+ * A callback for when a client disconnects from the server.
+ */
 type onDisconnectCallback = (clientID: number) => void;
 
+/**
+ * Events emitted by the server.
+ */
+interface ServerEvents<R> {
+  /**
+   * Emitted when data is received from a client.
+   */
+  recv: onRecvCallback<R>;
+
+  /**
+   * Emitted when a client connects to the server.
+   */
+  connect: onConnectCallback;
+
+  /**
+   * Emitted when a client disconnects from the server.
+   */
+  disconnect: onDisconnectCallback;
+}
+
+/**
+ * A mapping of client IDs to client sockets.
+ */
 interface ClientMap {
   [clientID: number]: net.Socket;
 }
 
+/**
+ * A mapping of client IDs to client message streams.
+ */
 interface ClientMessageStreamMap {
   [clientID: number]: MessageStream;
 }
 
+/**
+ * A mapping of client IDs to client AES keys.
+ */
 interface KeyMap {
   [clientID: number]: Buffer;
 }
 
-interface ServerEvents<R> {
-  recv: onRecvCallback<R>;
-  connect: onConnectCallback;
-  disconnect: onDisconnectCallback;
-}
-
+/**
+ * A socket server. `S` is the type of data that will be sent, and `R` is the type of data that will be received.
+ */
 export class Server<S, R> extends TypedEmitter<ServerEvents<R>> {
+  /**
+   * Whether the server is serving.
+   */
   private serving: boolean = false;
+
+  /**
+   * The server socket.
+   */
   private server: net.Server | null = null;
+
+  /**
+   * The mapping of client IDs to their sockets.
+   */
   private clients: ClientMap = {};
+
+  /**
+   * A mapping of client IDs to their message streams.
+   */
   private messageStreams: ClientMessageStreamMap = {};
+
+  /**
+   * A mapping of client IDs to their AES keys.
+   */
   private keys: KeyMap = {};
+
+  /**
+   * The next available client ID.
+   */
   private nextClientID: number = 0;
 
   constructor() {
     super();
   }
 
+  /**
+   * Start the server.
+   */
   public async start(): Promise<void>;
+  /**
+   * Start the server.
+   *
+   * @param host The server's host address.
+   */
   public async start(host: string): Promise<void>;
+  /**
+   * Start the server.
+   *
+   * @param port The server's port.
+   */
   public async start(port: number): Promise<void>;
+  /**
+   * Start the server.
+   *
+   * @param host The server's host address.
+   * @param port The server's port.
+   */
   public async start(host: string, port: number): Promise<void>;
+  /**
+   * Start the server.
+   *
+   * @param host The server's host address.
+   * @param port The server's port.
+   */
   public async start(
     host: any = DEFAULT_SERVER_HOST,
     port: any = DEFAULT_PORT
@@ -90,6 +175,9 @@ export class Server<S, R> extends TypedEmitter<ServerEvents<R>> {
     });
   }
 
+  /**
+   * Stop the server.
+   */
   public async stop(): Promise<void> {
     return new Promise((resolve, reject) => {
       if (!this.serving) {
@@ -119,6 +207,12 @@ export class Server<S, R> extends TypedEmitter<ServerEvents<R>> {
     });
   }
 
+  /**
+   * Send data to clients.
+   *
+   * @param data The data to send.
+   * @param clientIDs The client IDs to send the data to. If none are specified, data will be sent to all clients.
+   */
   public async send(data: S, ...clientIDs: number[]): Promise<void> {
     return new Promise((resolve, reject) => {
       if (!this.serving) {
@@ -139,7 +233,7 @@ export class Server<S, R> extends TypedEmitter<ServerEvents<R>> {
           const bufData = Buffer.from(strData);
           const encryptedData = aesEncrypt(this.keys[clientID], bufData);
           const dataBuffer = Buffer.concat([
-            encode_message_size(encryptedData.length),
+            encodeMessageSize(encryptedData.length),
             encryptedData,
           ]);
 
@@ -161,11 +255,21 @@ export class Server<S, R> extends TypedEmitter<ServerEvents<R>> {
     });
   }
 
+  /**
+   * Check if the server is serving.
+   *
+   * @returns Whether the server is serving.
+   */
   public isServing(): boolean {
     return this.serving;
   }
 
-  public getAddr(): Address | null {
+  /**
+   * Get the server's address.
+   *
+   * @returns The server's address.
+   */
+  public getAddr(): Address {
     if (!this.serving) {
       throw new Error("server is not serving");
     }
@@ -174,7 +278,7 @@ export class Server<S, R> extends TypedEmitter<ServerEvents<R>> {
       const addr = this.server.address();
 
       if (addr === null) {
-        return null;
+        throw new Error("failed to get server address");
       } else if (typeof addr === "string") {
         return {
           host: addr,
@@ -191,7 +295,13 @@ export class Server<S, R> extends TypedEmitter<ServerEvents<R>> {
     }
   }
 
-  public getClientAddr(clientID: number): Address | null {
+  /**
+   * Get a client's address.
+   *
+   * @param clientID The client's ID.
+   * @returns The client's address.
+   */
+  public getClientAddr(clientID: number): Address {
     if (!this.serving) {
       throw new Error("server is not serving");
     }
@@ -206,13 +316,18 @@ export class Server<S, R> extends TypedEmitter<ServerEvents<R>> {
           port,
         };
       } else {
-        return null;
+        throw new Error("failed to get client address");
       }
     } else {
       throw new Error(`client ${clientID} does not exist`);
     }
   }
 
+  /**
+   * Disconnect a client from the server.
+   *
+   * @param clientID The client's ID.
+   */
   public removeClient(clientID: number): void {
     if (!this.serving) {
       throw new Error("server is not serving");
@@ -222,17 +337,30 @@ export class Server<S, R> extends TypedEmitter<ServerEvents<R>> {
       this.clients[clientID].destroy();
       delete this.clients[clientID];
       delete this.keys[clientID];
+      delete this.messageStreams[clientID];
     } else {
       throw new Error(`client ${clientID} does not exist`);
     }
   }
 
+  /**
+   * Called when data has been received from a client.
+   *
+   * @param clientID The client's ID.
+   * @param dataBuffer The data received.
+   */
   private onData(clientID: number, dataBuffer: Buffer): void {
     const decryptedData = aesDecrypt(this.keys[clientID], dataBuffer);
     const data = JSON.parse(decryptedData.toString());
     this.emit("recv", clientID, data);
   }
 
+  /**
+   * Exchange keys with a client.
+   *
+   * @param clientID The client's ID.
+   * @param conn The client socket.
+   */
   private async exchangeKeys(
     clientID: number,
     conn: net.Socket

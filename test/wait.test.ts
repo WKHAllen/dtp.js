@@ -1,5 +1,8 @@
 import { WaitGroup } from "../src/wait";
 
+/**
+ * Test wait groups.
+ */
 test("test wait group", async () => {
   const wg = new WaitGroup();
 

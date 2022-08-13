@@ -5,33 +5,93 @@ import {
   DEFAULT_CLIENT_HOST,
   DEFAULT_PORT,
   Address,
-  encode_message_size,
+  encodeMessageSize,
 } from "./util";
 import { MessageStream } from "./message-stream";
 import { newAESKey, aesEncrypt, aesDecrypt } from "./crypto";
 
+/**
+ * A callback for when data is received from the server. `R` is the type of data received.
+ */
 type onRecvCallback<R> = (data: R) => void;
+
+/**
+ * A callback for when the server has disconnected the client.
+ */
 type onDisconnectedCallback = () => void;
 
+/**
+ * Events emitted by the client.
+ */
 interface ClientEvents<R> {
+  /**
+   * Emitted when data has been received from the server.
+   */
   recv: onRecvCallback<R>;
+
+  /**
+   * Emitted when the server has disconnected the client.
+   */
   disconnected: onDisconnectedCallback;
 }
 
+/**
+ * A socket client. `S` is the type of data that will be sent, and `R` is the type of data that will be received.
+ */
 export class Client<S, R> extends TypedEmitter<ClientEvents<R>> {
+  /**
+   * Whether the client is connected to a server.
+   */
   private connected: boolean = false;
+
+  /**
+   * The client socket.
+   */
   private conn: net.Socket | null = null;
+
+  /**
+   * The message stream.
+   */
   private messageStream: MessageStream = new MessageStream();
+
+  /**
+   * The AES key.
+   */
   private key: Buffer | null = null;
 
   constructor() {
     super();
   }
 
+  /**
+   * Connect to a server.
+   */
   public async connect(): Promise<void>;
+  /**
+   * Connect to a server.
+   *
+   * @param host The server's host address.
+   */
   public async connect(host: string): Promise<void>;
+  /**
+   * Connect to a server.
+   *
+   * @param port The server's port.
+   */
   public async connect(port: number): Promise<void>;
+  /**
+   * Connect to a server.
+   *
+   * @param host The server's host address.
+   * @param port The server's port.
+   */
   public async connect(host: string, port: number): Promise<void>;
+  /**
+   * Connect to a server.
+   *
+   * @param host The server's host address.
+   * @param port The server's port.
+   */
   public async connect(
     host: any = DEFAULT_CLIENT_HOST,
     port: any = DEFAULT_PORT
@@ -72,6 +132,9 @@ export class Client<S, R> extends TypedEmitter<ClientEvents<R>> {
     });
   }
 
+  /**
+   * Disconnect from the server.
+   */
   public async disconnect(): Promise<void> {
     return new Promise((resolve, reject) => {
       if (!this.connected) {
@@ -88,6 +151,11 @@ export class Client<S, R> extends TypedEmitter<ClientEvents<R>> {
     });
   }
 
+  /**
+   * Send data to the server.
+   *
+   * @param data The data to send.
+   */
   public async send(data: S): Promise<void> {
     return new Promise((resolve, reject) => {
       if (!this.connected) {
@@ -99,7 +167,7 @@ export class Client<S, R> extends TypedEmitter<ClientEvents<R>> {
         const bufData = Buffer.from(strData);
         const encryptedData = aesEncrypt(this.key, bufData);
         const dataBuffer = Buffer.concat([
-          encode_message_size(encryptedData.length),
+          encodeMessageSize(encryptedData.length),
           encryptedData,
         ]);
 
@@ -116,10 +184,20 @@ export class Client<S, R> extends TypedEmitter<ClientEvents<R>> {
     });
   }
 
+  /**
+   * Check if the client is connected to a server.
+   *
+   * @returns Whether the client is connected to a server.
+   */
   public isConnected(): boolean {
     return this.connected;
   }
 
+  /**
+   * Get the client's address.
+   *
+   * @returns The client's address.
+   */
   public getAddr(): Address {
     if (!this.connected) {
       throw new Error("client is not connected to a server");
@@ -144,7 +222,12 @@ export class Client<S, R> extends TypedEmitter<ClientEvents<R>> {
     }
   }
 
-  public getServerAddr(): Address | null {
+  /**
+   * Get the server's address.
+   *
+   * @returns The server's address.
+   */
+  public getServerAddr(): Address {
     if (!this.connected) {
       throw new Error("client is not connected to a server");
     }
@@ -159,13 +242,18 @@ export class Client<S, R> extends TypedEmitter<ClientEvents<R>> {
           port,
         };
       } else {
-        return null;
+        throw new Error("failed to get server address");
       }
     } else {
       throw new Error("client has not connected to a server");
     }
   }
 
+  /**
+   * Called when data has been received from the server.
+   *
+   * @param dataBuffer The data received.
+   */
   private onData(dataBuffer: Buffer): void {
     if (this.key !== null) {
       const decryptedData = aesDecrypt(this.key, dataBuffer);
@@ -176,6 +264,11 @@ export class Client<S, R> extends TypedEmitter<ClientEvents<R>> {
     }
   }
 
+  /**
+   * Exchange keys with the server.
+   *
+   * @param conn The server socket.
+   */
   private async exchangeKeys(conn: net.Socket): Promise<void> {
     return new Promise((resolve, reject) => {
       conn.once("data", (publicKey) => {

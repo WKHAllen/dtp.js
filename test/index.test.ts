@@ -4,54 +4,66 @@ import {
   DEFAULT_CLIENT_HOST,
   DEFAULT_SERVER_HOST,
   DEFAULT_PORT,
-  encode_message_size,
-  decode_message_size,
+  encodeMessageSize,
+  decodeMessageSize,
 } from "../src/util";
 import { ExpectMap } from "./expect-map";
 import * as crypto from "crypto";
 
+/**
+ * The amount of time in milliseconds to wait between each network operation.
+ */
 const waitTime = 100;
 
+/**
+ * Test message size encoding.
+ */
 test("test encode message size", () => {
-  expect(encode_message_size(0)).toEqual(new Uint8Array([0, 0, 0, 0, 0]));
-  expect(encode_message_size(1)).toEqual(new Uint8Array([0, 0, 0, 0, 1]));
-  expect(encode_message_size(255)).toEqual(new Uint8Array([0, 0, 0, 0, 255]));
-  expect(encode_message_size(256)).toEqual(new Uint8Array([0, 0, 0, 1, 0]));
-  expect(encode_message_size(257)).toEqual(new Uint8Array([0, 0, 0, 1, 1]));
-  expect(encode_message_size(4311810305)).toEqual(
+  expect(encodeMessageSize(0)).toEqual(new Uint8Array([0, 0, 0, 0, 0]));
+  expect(encodeMessageSize(1)).toEqual(new Uint8Array([0, 0, 0, 0, 1]));
+  expect(encodeMessageSize(255)).toEqual(new Uint8Array([0, 0, 0, 0, 255]));
+  expect(encodeMessageSize(256)).toEqual(new Uint8Array([0, 0, 0, 1, 0]));
+  expect(encodeMessageSize(257)).toEqual(new Uint8Array([0, 0, 0, 1, 1]));
+  expect(encodeMessageSize(4311810305)).toEqual(
     new Uint8Array([1, 1, 1, 1, 1])
   );
-  expect(encode_message_size(4328719365)).toEqual(
+  expect(encodeMessageSize(4328719365)).toEqual(
     new Uint8Array([1, 2, 3, 4, 5])
   );
-  expect(encode_message_size(47362409218)).toEqual(
+  expect(encodeMessageSize(47362409218)).toEqual(
     new Uint8Array([11, 7, 5, 3, 2])
   );
-  expect(encode_message_size(1099511627775)).toEqual(
+  expect(encodeMessageSize(1099511627775)).toEqual(
     new Uint8Array([255, 255, 255, 255, 255])
   );
 });
 
+/**
+ * Test message size decoding.
+ */
 test("test decode message size", () => {
-  expect(decode_message_size(new Uint8Array([0, 0, 0, 0, 0]))).toEqual(0);
-  expect(decode_message_size(new Uint8Array([0, 0, 0, 0, 1]))).toEqual(1);
-  expect(decode_message_size(new Uint8Array([0, 0, 0, 0, 255]))).toEqual(255);
-  expect(decode_message_size(new Uint8Array([0, 0, 0, 1, 0]))).toEqual(256);
-  expect(decode_message_size(new Uint8Array([0, 0, 0, 1, 1]))).toEqual(257);
-  expect(decode_message_size(new Uint8Array([1, 1, 1, 1, 1]))).toEqual(
+  expect(decodeMessageSize(new Uint8Array([0, 0, 0, 0, 0]))).toEqual(0);
+  expect(decodeMessageSize(new Uint8Array([0, 0, 0, 0, 1]))).toEqual(1);
+  expect(decodeMessageSize(new Uint8Array([0, 0, 0, 0, 255]))).toEqual(255);
+  expect(decodeMessageSize(new Uint8Array([0, 0, 0, 1, 0]))).toEqual(256);
+  expect(decodeMessageSize(new Uint8Array([0, 0, 0, 1, 1]))).toEqual(257);
+  expect(decodeMessageSize(new Uint8Array([1, 1, 1, 1, 1]))).toEqual(
     4311810305
   );
-  expect(decode_message_size(new Uint8Array([1, 2, 3, 4, 5]))).toEqual(
+  expect(decodeMessageSize(new Uint8Array([1, 2, 3, 4, 5]))).toEqual(
     4328719365
   );
-  expect(decode_message_size(new Uint8Array([11, 7, 5, 3, 2]))).toEqual(
+  expect(decodeMessageSize(new Uint8Array([11, 7, 5, 3, 2]))).toEqual(
     47362409218
   );
-  expect(
-    decode_message_size(new Uint8Array([255, 255, 255, 255, 255]))
-  ).toEqual(1099511627775);
+  expect(decodeMessageSize(new Uint8Array([255, 255, 255, 255, 255]))).toEqual(
+    1099511627775
+  );
 });
 
+/**
+ * Test sending and receiving messages between client and server.
+ */
 test("test send and receive", async () => {
   const expected = new ExpectMap({
     "server recv": 1,
@@ -114,6 +126,9 @@ test("test send and receive", async () => {
   expect(expected.done()).toBeTruthy();
 });
 
+/**
+ * Test sending more complex objects between client and server.
+ */
 test("test sending objects", async () => {
   const expected = new ExpectMap({
     "server recv": 1,
@@ -167,6 +182,9 @@ test("test sending objects", async () => {
   expect(expected.done()).toBeTruthy();
 });
 
+/**
+ * Test sending larger messages over the network.
+ */
 test("test sending large messages", async () => {
   const expected = new ExpectMap({
     "server recv": 1,
@@ -222,6 +240,9 @@ test("test sending large messages", async () => {
   expect(expected.done()).toBeTruthy();
 });
 
+/**
+ * Test sending multiple messages over the network.
+ */
 test("test sending numerous messages", async () => {
   const numServerMessages = crypto.randomInt(64, 127);
   const numClientMessages = crypto.randomInt(128, 255);
@@ -299,6 +320,9 @@ test("test sending numerous messages", async () => {
   expect(expected.done()).toBeTruthy();
 });
 
+/**
+ * Test send/receive type generics for client and server.
+ */
 test("test send and receive generics", async () => {
   let received = false;
   const message = "What is the length of this string?";
@@ -346,6 +370,9 @@ test("test send and receive generics", async () => {
   expect(received).toBe(true);
 });
 
+/**
+ * Test client disconnect events.
+ */
 test("test client disconnected", async () => {
   const expected = new ExpectMap({
     "server recv": 0,
@@ -398,6 +425,9 @@ test("test client disconnected", async () => {
   expect(expected.done()).toBeTruthy();
 });
 
+/**
+ * Test removing clients from a server.
+ */
 test("test remove client", async () => {
   const expected = new ExpectMap({
     "server recv": 0,
@@ -445,6 +475,9 @@ test("test remove client", async () => {
   expect(expected.done()).toBeTruthy();
 });
 
+/**
+ * Test socket addresses match.
+ */
 test("test server and client address methods", async () => {
   const server = new Server();
   await server.start("127.0.0.1", 0);
@@ -473,6 +506,9 @@ test("test server and client address methods", async () => {
   await server.stop();
 });
 
+/**
+ * Test default socket addresses match.
+ */
 test("test server and client default address methods", async () => {
   const server = new Server();
   await server.start();

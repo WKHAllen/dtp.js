@@ -1,13 +1,29 @@
-import { LEN_SIZE, decode_message_size } from "./util";
+import { LEN_SIZE, decodeMessageSize } from "./util";
 
+/**
+ * A stream of messages from a socket.
+ */
 export class MessageStream {
+  /**
+   * The currently unprocessed, incomplete message.
+   */
   private message: Buffer = Buffer.from("");
+
+  /**
+   * The expected length of the current message.
+   */
   private messageLength: number = 0;
 
+  /**
+   * Read messages from the stream.
+   *
+   * @param messageSegment The next segment of the message.
+   * @returns All recent, fully-processed messages.
+   */
   public received(messageSegment?: Buffer): Buffer[] {
     if (messageSegment !== undefined) {
       if (this.message.length === 0) {
-        this.messageLength = decode_message_size(
+        this.messageLength = decodeMessageSize(
           messageSegment.slice(0, LEN_SIZE)
         );
         this.message = messageSegment.slice(LEN_SIZE);
@@ -25,9 +41,7 @@ export class MessageStream {
       const nextMessage = this.message.slice(this.messageLength);
 
       if (nextMessage.length >= LEN_SIZE) {
-        this.messageLength = decode_message_size(
-          nextMessage.slice(0, LEN_SIZE)
-        );
+        this.messageLength = decodeMessageSize(nextMessage.slice(0, LEN_SIZE));
         this.message = nextMessage.slice(LEN_SIZE);
 
         return [msg, ...this.received()];

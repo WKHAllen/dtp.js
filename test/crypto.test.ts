@@ -7,6 +7,9 @@ import {
   aesDecrypt,
 } from "../src/crypto";
 
+/**
+ * Test RSA keygen, encryption, and decryption.
+ */
 test("test RSA", async () => {
   const message = "Hello, RSA!";
 
@@ -18,6 +21,9 @@ test("test RSA", async () => {
   expect(decryptedMessage).toBe(message);
 });
 
+/**
+ * Test AES keygen, encryption, and decryption.
+ */
 test("test AES", () => {
   const message = "Hello, AES!";
 

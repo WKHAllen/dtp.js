@@ -1,7 +1,7 @@
 {
   "name": "dtp.js",
   "version": "0.1.0",
-  "description": "A cross platform networking library for JavaScript/TypeScript",
+  "description": "Asynchronous event-driven networking interfaces for JavaScript and TypeScript.",
   "types": "./lib/index.d.ts",
   "files": [
     "lib/**/*"

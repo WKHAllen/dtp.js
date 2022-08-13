@@ -6,7 +6,6 @@ import {
   DEFAULT_PORT,
   encode_message_size,
   decode_message_size,
-  MessageStream,
 } from "../src/util";
 import { ExpectMap } from "./expect-map";
 import * as crypto from "crypto";
@@ -51,33 +50,6 @@ test("test decode message size", () => {
   expect(
     decode_message_size(new Uint8Array([255, 255, 255, 255, 255]))
   ).toEqual(1099511627775);
-});
-
-test("test message stream", () => {
-  const messageStream = new MessageStream();
-
-  expect(messageStream.received(Buffer.from([0, 0, 0, 0, 1, 67]))).toEqual([
-    Buffer.from("C"),
-  ]);
-
-  expect(
-    messageStream.received(
-      Buffer.from([0, 0, 0, 0, 1, 65, 0, 0, 0, 0, 3, 65, 66, 67])
-    )
-  ).toEqual([Buffer.from("A"), Buffer.from("ABC")]);
-
-  expect(messageStream.received()).toEqual([]);
-
-  expect(messageStream.received(Buffer.from([0, 0, 0, 0, 2, 68]))).toEqual([]);
-  expect(messageStream.received(Buffer.from([69]))).toEqual([
-    Buffer.from("DE"),
-  ]);
-
-  expect(messageStream.received(Buffer.from([0, 0, 0, 0, 2, 68]))).toEqual([]);
-  expect(messageStream.received(Buffer.from([69, 0, 0, 0, 0, 1, 70]))).toEqual([
-    Buffer.from("DE"),
-    Buffer.from("F"),
-  ]);
 });
 
 test("test send and receive", async () => {

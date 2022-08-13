@@ -16,4 +16,5 @@ test("test wait group", async () => {
   expect(wg.getTotal()).toBe(1);
   setTimeout(() => wg.done(), 100);
   await wg.wait();
+  expect(wg.getTotal()).toBe(0);
 });

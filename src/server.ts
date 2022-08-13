@@ -7,11 +7,9 @@ import {
   DEFAULT_PORT,
   Address,
   encode_message_size,
-  MessageStream,
-  newRSAKeys,
-  aesEncrypt,
-  aesDecrypt,
 } from "./util";
+import { MessageStream } from "./message-stream";
+import { newRSAKeys, aesEncrypt, aesDecrypt } from "./crypto";
 import { WaitGroup } from "./wait";
 
 type onRecvCallback<R> = (clientID: number, data: R) => void;

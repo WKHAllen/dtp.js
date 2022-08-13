@@ -6,11 +6,9 @@ import {
   DEFAULT_PORT,
   Address,
   encode_message_size,
-  MessageStream,
-  newAESKey,
-  aesEncrypt,
-  aesDecrypt,
 } from "./util";
+import { MessageStream } from "./message-stream";
+import { newAESKey, aesEncrypt, aesDecrypt } from "./crypto";
 
 type onRecvCallback<R> = (data: R) => void;
 type onDisconnectedCallback = () => void;

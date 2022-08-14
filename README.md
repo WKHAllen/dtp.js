@@ -15,10 +15,13 @@ server.on("connect", (clientID) => {
 server.on("disconnect", (clientID) => {
   console.log(`Client with ID ${clientID} disconnected`);
 });
-server.on("recv", (clientID, data) => {
+server.on("recv", async (clientID, data) => {
   // Send back the length of the string
-  server.send(data.length, clientID);
+  await server.send(data.length, clientID);
 });
+
+// Start the server
+await server.start("0.0.0.0", 29275);
 ```
 
 ## Creating a client
@@ -41,8 +44,10 @@ client.on("disconnected", () => {
   console.error("Unexpectedly disconnected from server");
 });
 
+// Connect to the server
+await client.connect("127.0.0.1", 29275);
 // Send the message to the server
-client.send(message);
+await client.send(message);
 ```
 
 ## Security

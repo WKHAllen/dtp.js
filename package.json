@@ -1,6 +1,6 @@
 {
   "name": "dtp.js",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Asynchronous event-driven networking interfaces for JavaScript and TypeScript.",
   "types": "./lib/index.d.ts",
   "files": [

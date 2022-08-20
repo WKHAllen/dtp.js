@@ -104,5 +104,7 @@ dist
 .tern-port
 
 # Other
+.vscode
+.idea
 /lib
 todo.txt

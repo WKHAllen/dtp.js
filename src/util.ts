@@ -27,15 +27,15 @@ export const DEFAULT_PORT = 29275;
  * A socket address.
  */
 export interface Address {
-  /**
-   * The host address.
-   */
-  host: string;
+    /**
+     * The host address.
+     */
+    host: string;
 
-  /**
-   * The port number.
-   */
-  port: number;
+    /**
+     * The port number.
+     */
+    port: number;
 }
 
 /**
@@ -45,15 +45,15 @@ export interface Address {
  * @returns The encoded message size.
  */
 export function encodeMessageSize(size: number): Uint8Array {
-  let big_size = BigInt(size);
-  const encoded_size = new Uint8Array(LEN_SIZE);
+    let big_size = BigInt(size);
+    const encoded_size = new Uint8Array(LEN_SIZE);
 
-  for (let i = 0; i < LEN_SIZE; i++) {
-    encoded_size[LEN_SIZE - i - 1] = Number(big_size % BigInt(256));
-    big_size >>= BigInt(8);
-  }
+    for (let i = 0; i < LEN_SIZE; i++) {
+        encoded_size[LEN_SIZE - i - 1] = Number(big_size % BigInt(256));
+        big_size >>= BigInt(8);
+    }
 
-  return encoded_size;
+    return encoded_size;
 }
 
 /**
@@ -63,12 +63,12 @@ export function encodeMessageSize(size: number): Uint8Array {
  * @returns The size of the message.
  */
 export function decodeMessageSize(encodedSize: Uint8Array): number {
-  let size = BigInt(0);
+    let size = BigInt(0);
 
-  for (let i = 0; i < LEN_SIZE; i++) {
-    size <<= BigInt(8);
-    size += BigInt(encodedSize[i]);
-  }
+    for (let i = 0; i < LEN_SIZE; i++) {
+        size <<= BigInt(8);
+        size += BigInt(encodedSize[i]);
+    }
 
-  return Number(size);
+    return Number(size);
 }

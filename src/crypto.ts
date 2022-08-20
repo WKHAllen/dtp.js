@@ -14,15 +14,15 @@ export const IV_SIZE = 16;
  * An RSA key pair.
  */
 export interface RSAKeys {
-  /**
-   * The RSA public key.
-   */
-  publicKey: string | Buffer | crypto.KeyObject;
+    /**
+     * The RSA public key.
+     */
+    publicKey: string | Buffer | crypto.KeyObject;
 
-  /**
-   * The RSA private key.
-   */
-  privateKey: string | Buffer | crypto.KeyObject;
+    /**
+     * The RSA private key.
+     */
+    privateKey: string | Buffer | crypto.KeyObject;
 }
 
 /**
@@ -32,29 +32,29 @@ export interface RSAKeys {
  * @returns The generated RSA key pair.
  */
 export async function newRSAKeys(length: number = 4096): Promise<RSAKeys> {
-  return new Promise((resolve, reject) => {
-    const rsaOptions = {
-      modulusLength: length,
-      publicKeyEncoding: {
-        type: "spki",
-        format: "pem",
-      },
-      privateKeyEncoding: {
-        type: "pkcs8",
-        format: "pem",
-        cipher: "aes-256-cbc",
-        passphrase: "",
-      },
-    };
+    return new Promise((resolve, reject) => {
+        const rsaOptions = {
+            modulusLength: length,
+            publicKeyEncoding: {
+                type: "spki",
+                format: "pem",
+            },
+            privateKeyEncoding: {
+                type: "pkcs8",
+                format: "pem",
+                cipher: "aes-256-cbc",
+                passphrase: "",
+            },
+        };
 
-    crypto.generateKeyPair("rsa", rsaOptions, (err, publicKey, privateKey) => {
-      if (err) {
-        reject(err);
-      } else {
-        resolve({ publicKey, privateKey });
-      }
+        crypto.generateKeyPair("rsa", rsaOptions, (err, publicKey, privateKey) => {
+            if (err) {
+                reject(err);
+            } else {
+                resolve({publicKey, privateKey});
+            }
+        });
     });
-  });
 }
 
 /**
@@ -65,10 +65,10 @@ export async function newRSAKeys(length: number = 4096): Promise<RSAKeys> {
  * @returns The encrypted data.
  */
 export function rsaEncrypt(
-  publicKey: string | Buffer | crypto.KeyObject,
-  plaintext: Buffer
+    publicKey: string | Buffer | crypto.KeyObject,
+    plaintext: Buffer
 ): Buffer {
-  return crypto.publicEncrypt(publicKey, plaintext);
+    return crypto.publicEncrypt(publicKey, plaintext);
 }
 
 /**
@@ -79,16 +79,16 @@ export function rsaEncrypt(
  * @returns The decrypted data.
  */
 export function rsaDecrypt(
-  privateKey: string | Buffer | crypto.KeyObject,
-  ciphertext: Buffer
+    privateKey: string | Buffer | crypto.KeyObject,
+    ciphertext: Buffer
 ): Buffer {
-  return crypto.privateDecrypt(
-    {
-      key: privateKey,
-      passphrase: "",
-    },
-    ciphertext
-  );
+    return crypto.privateDecrypt(
+        {
+            key: privateKey,
+            passphrase: "",
+        },
+        ciphertext
+    );
 }
 
 /**
@@ -97,7 +97,7 @@ export function rsaDecrypt(
  * @returns The generated AES key.
  */
 export function newAESKey(): Buffer {
-  return crypto.randomBytes(KEY_SIZE);
+    return crypto.randomBytes(KEY_SIZE);
 }
 
 /**
@@ -108,11 +108,10 @@ export function newAESKey(): Buffer {
  * @returns The encrypted data.
  */
 export function aesEncrypt(key: Buffer, plaintext: Buffer): Buffer {
-  const iv = crypto.randomBytes(IV_SIZE);
-  const cipher = crypto.createCipheriv("aes-256-cbc", key, iv);
-  const ciphertext = cipher.update(plaintext);
-  const ciphertextWithIV = Buffer.concat([iv, ciphertext, cipher.final()]);
-  return ciphertextWithIV;
+    const iv = crypto.randomBytes(IV_SIZE);
+    const cipher = crypto.createCipheriv("aes-256-cbc", key, iv);
+    const ciphertext = cipher.update(plaintext);
+    return Buffer.concat([iv, ciphertext, cipher.final()]);
 }
 
 /**
@@ -123,10 +122,9 @@ export function aesEncrypt(key: Buffer, plaintext: Buffer): Buffer {
  * @returns The decrypted data.
  */
 export function aesDecrypt(key: Buffer, ciphertextWithIV: Buffer): Buffer {
-  const iv = ciphertextWithIV.slice(0, IV_SIZE);
-  const ciphertext = ciphertextWithIV.slice(IV_SIZE);
-  const decipher = crypto.createDecipheriv("aes-256-cbc", key, iv);
-  const plaintext = decipher.update(ciphertext);
-  const plaintextFinal = Buffer.concat([plaintext, decipher.final()]);
-  return plaintextFinal;
+    const iv = ciphertextWithIV.slice(0, IV_SIZE);
+    const ciphertext = ciphertextWithIV.slice(IV_SIZE);
+    const decipher = crypto.createDecipheriv("aes-256-cbc", key, iv);
+    const plaintext = decipher.update(ciphertext);
+    return Buffer.concat([plaintext, decipher.final()]);
 }

@@ -1,14 +1,19 @@
 import * as crypto from "crypto";
 
 /**
- * The size in bytes of AES keys.
+ * The size in bytes of an RSA key.
  */
-export const KEY_SIZE = 32;
+export const RSA_KEY_SIZE = 4096;
 
 /**
- * The size in bytes of AES IVs.
+ * The size in bytes of an AES key.
  */
-export const IV_SIZE = 16;
+export const AES_KEY_SIZE = 32;
+
+/**
+ * The size in bytes of an AES nonce.
+ */
+export const AES_NONCE_SIZE = 16;
 
 /**
  * An RSA key pair.
@@ -31,7 +36,7 @@ export interface RSAKeys {
  * @param length The size of the key.
  * @returns The generated RSA key pair.
  */
-export async function newRSAKeys(length: number = 4096): Promise<RSAKeys> {
+export async function newRSAKeys(length: number = RSA_KEY_SIZE): Promise<RSAKeys> {
     return new Promise((resolve, reject) => {
         const rsaOptions = {
             modulusLength: length,
@@ -97,7 +102,7 @@ export function rsaDecrypt(
  * @returns The generated AES key.
  */
 export function newAESKey(): Buffer {
-    return crypto.randomBytes(KEY_SIZE);
+    return crypto.randomBytes(AES_KEY_SIZE);
 }
 
 /**
@@ -108,23 +113,23 @@ export function newAESKey(): Buffer {
  * @returns The encrypted data.
  */
 export function aesEncrypt(key: Buffer, plaintext: Buffer): Buffer {
-    const iv = crypto.randomBytes(IV_SIZE);
-    const cipher = crypto.createCipheriv("aes-256-cbc", key, iv);
+    const nonce = crypto.randomBytes(AES_NONCE_SIZE);
+    const cipher = crypto.createCipheriv("aes-256-cbc", key, nonce);
     const ciphertext = cipher.update(plaintext);
-    return Buffer.concat([iv, ciphertext, cipher.final()]);
+    return Buffer.concat([nonce, ciphertext, cipher.final()]);
 }
 
 /**
  * Decrypt data with AES.
  *
  * @param key The AES key.
- * @param ciphertextWithIV The data to decrypt.
+ * @param ciphertextWithNonce The data to decrypt.
  * @returns The decrypted data.
  */
-export function aesDecrypt(key: Buffer, ciphertextWithIV: Buffer): Buffer {
-    const iv = ciphertextWithIV.slice(0, IV_SIZE);
-    const ciphertext = ciphertextWithIV.slice(IV_SIZE);
-    const decipher = crypto.createDecipheriv("aes-256-cbc", key, iv);
+export function aesDecrypt(key: Buffer, ciphertextWithNonce: Buffer): Buffer {
+    const nonce = ciphertextWithNonce.slice(0, AES_NONCE_SIZE);
+    const ciphertext = ciphertextWithNonce.slice(AES_NONCE_SIZE);
+    const decipher = crypto.createDecipheriv("aes-256-cbc", key, nonce);
     const plaintext = decipher.update(ciphertext);
     return Buffer.concat([plaintext, decipher.final()]);
 }

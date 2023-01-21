@@ -16,9 +16,18 @@ import * as crypto from "crypto";
 const waitTime = 100;
 
 /**
+ * A custom type to be sent over a network interface.
+ */
+class Custom {
+    public a: number = 0;
+    public b: string = "";
+    public c: string[] = [];
+}
+
+/**
  * Test message size encoding.
  */
-test("test encode message size", () => {
+test("test util", () => {
     expect(encodeMessageSize(0)).toEqual(new Uint8Array([0, 0, 0, 0, 0]));
     expect(encodeMessageSize(1)).toEqual(new Uint8Array([0, 0, 0, 0, 1]));
     expect(encodeMessageSize(255)).toEqual(new Uint8Array([0, 0, 0, 0, 255]));
@@ -36,12 +45,7 @@ test("test encode message size", () => {
     expect(encodeMessageSize(1099511627775)).toEqual(
         new Uint8Array([255, 255, 255, 255, 255])
     );
-});
 
-/**
- * Test message size decoding.
- */
-test("test decode message size", () => {
     expect(decodeMessageSize(new Uint8Array([0, 0, 0, 0, 0]))).toEqual(0);
     expect(decodeMessageSize(new Uint8Array([0, 0, 0, 0, 1]))).toEqual(1);
     expect(decodeMessageSize(new Uint8Array([0, 0, 0, 0, 255]))).toEqual(255);
@@ -59,6 +63,22 @@ test("test decode message size", () => {
     expect(decodeMessageSize(new Uint8Array([255, 255, 255, 255, 255]))).toEqual(
         1099511627775
     );
+});
+
+/**
+ * Test server creation and serving.
+ */
+test("test server serve", async () => {
+    const server = new Server();
+    expect(server.isServing()).toBe(false);
+    await server.start();
+    expect(server.isServing()).toBe(true);
+    await wait(waitTime);
+
+    expect(server.isServing()).toBe(true);
+    await server.stop();
+    expect(server.isServing()).toBe(false);
+    await wait(waitTime);
 });
 
 /**
@@ -322,6 +342,205 @@ test("test sending numerous messages", async () => {
 
     expect(serverMessageIndex).toBe(numServerMessages);
     expect(clientMessageIndex).toBe(numClientMessages);
+
+    expect(expected.remaining()).toStrictEqual({});
+    expect(expected.done()).toBeTruthy();
+});
+
+/**
+ * Test sending and receiving custom types.
+ */
+test("test send/receive custom types", async () => {
+    const expected = new ExpectMap({
+        "server receive": 1,
+        "server connect": 1,
+        "server disconnect": 1,
+        "client receive": 1,
+        "client disconnected": 0,
+    });
+    expect(expected.getExpected()).toEqual({
+        "server receive": 1,
+        "server connect": 1,
+        "server disconnect": 1,
+        "client receive": 1,
+        "client disconnected": 0,
+    });
+
+    const serverMessage = new Custom();
+    serverMessage.a = 123;
+    serverMessage.b = "Hello, custom server class!";
+    serverMessage.c.push("first server item");
+    serverMessage.c.push("second server item");
+    const clientMessage = new Custom();
+    clientMessage.a = 456;
+    clientMessage.b = "Hello, custom client class!";
+    clientMessage.c.push("#1 client item");
+    clientMessage.c.push("client item #2");
+    clientMessage.c.push("(3) client item");
+
+    const server = new Server<Custom, Custom>();
+    server.on("receive", (clientID, data) => {
+        expect(clientID).toBe(0);
+        expect(data).toEqual(serverMessage);
+        expected.received("server receive");
+    });
+    server.on("connect", (clientID) => {
+        expect(clientID).toBe(0);
+        expected.received("server connect");
+    });
+    server.on("disconnect", (clientID) => {
+        expect(clientID).toBe(0);
+        expected.received("server disconnect");
+    });
+
+    expect(server.isServing()).toBe(false);
+    await server.start();
+    expect(server.isServing()).toBe(true);
+    await wait(waitTime);
+
+    const client = new Client<Custom, Custom>();
+    client.on("receive", (data) => {
+        expect(data).toEqual(clientMessage);
+        expected.received("client receive");
+    });
+    client.on("disconnected", () => {
+        // Should not happen
+        expected.received("client disconnected");
+    });
+
+    expect(client.isConnected()).toBe(false);
+    await client.connect();
+    expect(client.isConnected()).toBe(true);
+    await wait(waitTime);
+
+    await client.send(serverMessage);
+    await server.send(clientMessage);
+
+    await wait(waitTime);
+    expect(client.isConnected()).toBe(true);
+    await client.disconnect();
+    expect(client.isConnected()).toBe(false);
+
+    await wait(waitTime);
+    expect(server.isServing()).toBe(true);
+    await server.stop();
+    expect(server.isServing()).toBe(false);
+    await wait(waitTime);
+
+    expect(expected.remaining()).toStrictEqual({});
+    expect(expected.done()).toBeTruthy();
+});
+
+/**
+ * Test having multiple clients connected.
+ */
+test("test multiple clients", async () => {
+    const expected = new ExpectMap({
+        "server receive": 2,
+        "server connect": 2,
+        "server disconnect": 2,
+        "client receive": 4,
+        "client disconnected": 0,
+    });
+    expect(expected.getExpected()).toEqual({
+        "server receive": 2,
+        "server connect": 2,
+        "server disconnect": 2,
+        "client receive": 4,
+        "client disconnected": 0,
+    });
+    const messagesFromClients = [
+        "Hello from client #1!",
+        "Goodbye from client #2!"
+    ];
+    const messageFromServer = 29275;
+    const messageToClient1 = 123;
+    const messageToClient2 = 456;
+    let receivingIndividualMessage = false;
+
+    const server = new Server();
+    server.on("receive", (clientID, data) => {
+        expect(data).toBe(messagesFromClients[clientID]);
+        expected.received("server receive");
+    });
+    server.on("connect", (_clientID) => {
+        expected.received("server connect");
+    });
+    server.on("disconnect", (_clientID) => {
+        expected.received("server disconnect");
+    });
+
+    expect(server.isServing()).toBe(false);
+    await server.start();
+    expect(server.isServing()).toBe(true);
+    await wait(waitTime);
+
+    const client1 = new Client();
+    client1.on("receive", (data) => {
+        if (!receivingIndividualMessage) {
+            expect(data).toBe(messageFromServer);
+        } else {
+            expect(data).toBe(messageToClient1);
+        }
+
+        expected.received("client receive");
+    });
+    client1.on("disconnected", () => {
+        // Should not happen
+        expected.received("client disconnected");
+    });
+
+    expect(client1.isConnected()).toBe(false);
+    await client1.connect();
+    expect(client1.isConnected()).toBe(true);
+    await wait(waitTime);
+
+    const client2 = new Client();
+    client2.on("receive", (data) => {
+        if (!receivingIndividualMessage) {
+            expect(data).toBe(messageFromServer);
+        } else {
+            expect(data).toBe(messageToClient2);
+        }
+
+        expected.received("client receive");
+    });
+    client2.on("disconnected", () => {
+        // Should not happen
+        expected.received("client disconnected");
+    });
+
+    expect(client2.isConnected()).toBe(false);
+    await client2.connect();
+    expect(client2.isConnected()).toBe(true);
+    await wait(waitTime);
+
+    await client1.send(messagesFromClients[0]);
+    await wait(waitTime);
+    await client2.send(messagesFromClients[1]);
+    await wait(waitTime);
+    await server.send(messageFromServer);
+    await wait(waitTime);
+    receivingIndividualMessage = true;
+    server.send(messageToClient1, 0);
+    await wait(waitTime);
+    server.send(messageToClient2, 1);
+    await wait(waitTime);
+
+    expect(client1.isConnected()).toBe(true);
+    await client1.disconnect();
+    expect(client1.isConnected()).toBe(false);
+    await wait(waitTime);
+
+    expect(client2.isConnected()).toBe(true);
+    await client2.disconnect();
+    expect(client2.isConnected()).toBe(false);
+    await wait(waitTime);
+
+    expect(server.isServing()).toBe(true);
+    await server.stop();
+    expect(server.isServing()).toBe(false);
+    await wait(waitTime);
 
     expect(expected.remaining()).toStrictEqual({});
     expect(expected.done()).toBeTruthy();

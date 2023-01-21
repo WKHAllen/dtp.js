@@ -12,6 +12,7 @@ test("test RSA", async () => {
     const decryptedMessage = decrypted.toString();
 
     expect(decryptedMessage).toBe(message);
+    expect(encrypted.toString()).not.toBe(message);
 });
 
 /**
@@ -26,4 +27,19 @@ test("test AES", () => {
     const decryptedMessage = decrypted.toString();
 
     expect(decryptedMessage).toBe(message);
+    expect(encrypted.toString()).not.toBe(message);
+});
+
+/**
+ * Test encrypting/decrypting AES key with RSA.
+ */
+test("test encrypting AES key with RSA", async () => {
+    const {publicKey, privateKey} = await newRSAKeys();
+    const key = newAESKey();
+
+    const encryptedKey = rsaEncrypt(publicKey, key);
+    const decryptedKey = rsaDecrypt(privateKey, encryptedKey);
+
+    expect(decryptedKey.toString()).toBe(key.toString());
+    expect(encryptedKey.toString()).not.toBe(key.toString());
 });

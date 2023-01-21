@@ -17,6 +17,8 @@ $ npm install --save dtp.js
 
 ## Creating a server
 
+A server can be built using the `Server` implementation:
+
 ```ts
 import {Server} from "dtp.js";
 
@@ -38,6 +40,8 @@ await server.start({host: "0.0.0.0", port: 29275});
 ```
 
 ## Creating a client
+
+A client can be built using the `Client` implementation:
 
 ```ts
 import {Client} from "dtp.js";
